@@ -25,7 +25,7 @@ dnl OF THIS SOFTWARE.
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([LibTIFF Software], 3.7.0, [tiff@remotesensing.org], tiff)
+AC_INIT([LibTIFF Software], 3.7.1, [tiff@remotesensing.org], tiff)
 AC_LANG(C)
 
 dnl Compute the canonical target-system type variable
@@ -40,7 +40,7 @@ dnl Versioning.
 dnl Don't fill the ALPHA_VERSION field, if not applicable.
 LIBTIFF_MAJOR_VERSION=3
 LIBTIFF_MINOR_VERSION=7
-LIBTIFF_MICRO_VERSION=0
+LIBTIFF_MICRO_VERSION=1
 LIBTIFF_ALPHA_VERSION=
 LIBTIFF_VERSION=$LIBTIFF_MAJOR_VERSION.$LIBTIFF_MINOR_VERSION.$LIBTIFF_MICRO_VERSION$LIBTIFF_ALPHA_VERSION
 dnl This will be used with the 'make release' target
@@ -104,8 +104,6 @@ AC_REPLACE_FUNCS(getopt)
 AC_REPLACE_FUNCS(strcasecmp)
 AC_REPLACE_FUNCS(strtoul)
 
-AC_SYS_LARGEFILE
-
 dnl ---------------------------------------------------------------------------
 dnl Check the native cpu bit order.
 dnl ---------------------------------------------------------------------------
@@ -146,36 +144,55 @@ HAVE_IEEEFP=1
 AC_DEFINE_UNQUOTED(HAVE_IEEEFP, $HAVE_IEEEFP, [Define as 0 or 1 according to the floating point format suported by the machine])
 
 dnl ---------------------------------------------------------------------------
+dnl Enable run-time paths to libraries usage.
+dnl ---------------------------------------------------------------------------
+
+AC_ARG_ENABLE(rpath,
+	      AS_HELP_STRING([--enable-rpath],
+			     [Enable runtime linker paths (-R libtool option)]),
+	      [HAVE_RPATH=$enableval], [HAVE_RPATH=no])
+
+dnl ---------------------------------------------------------------------------
+dnl Support large files.
+dnl ---------------------------------------------------------------------------
+
+AC_SYS_LARGEFILE
+
+dnl ---------------------------------------------------------------------------
 dnl Switch on/off internal codecs.
 dnl ---------------------------------------------------------------------------
 
-HAVE_CCITT=yes
-
-AC_ARG_ENABLE(ccitt, AS_HELP_STRING([--disable-ccitt], [disable support for CCITT Group 3 & 4 algorithms]), [HAVE_CCITT=no], [HAVE_CCITT=yes])
+AC_ARG_ENABLE(ccitt,
+	      AS_HELP_STRING([--disable-ccitt],
+			     [disable support for CCITT Group 3 & 4 algorithms]),
+	      [HAVE_CCITT=$enableval], [HAVE_CCITT=yes])
 
 if test "$HAVE_CCITT" = "yes" ; then
   AC_DEFINE(CCITT_SUPPORT,1,[Support CCITT Group 3 & 4 algorithms])
 fi
 
-HAVE_PACKBITS=yes
-
-AC_ARG_ENABLE(packbits, AS_HELP_STRING([--disable-packbits], [disable support for Macintosh PackBits algorithm]), [HAVE_PACKBITS=no], [HAVE_PACKBITS=yes])
+AC_ARG_ENABLE(packbits,
+	      AS_HELP_STRING([--disable-packbits],
+			     [disable support for Macintosh PackBits algorithm]),
+	      [HAVE_PACKBITS=$enableval], [HAVE_PACKBITS=yes])
 
 if test "$HAVE_PACKBITS" = "yes" ; then
   AC_DEFINE(PACKBITS_SUPPORT,1,[Support Macintosh PackBits algorithm])
 fi
 
-HAVE_LZW=yes
-
-AC_ARG_ENABLE(lzw, AS_HELP_STRING([--disable-lzw], [disable support for LZW algorithm]), [HAVE_LZW=no], [HAVE_LZW=yes])
+AC_ARG_ENABLE(lzw,
+	      AS_HELP_STRING([--disable-lzw],
+			     [disable support for LZW algorithm]),
+	      [HAVE_LZW=$enableval], [HAVE_LZW=yes])
 
 if test "$HAVE_LZW" = "yes" ; then
   AC_DEFINE(LZW_SUPPORT,1,[Support LZW algorithm])
 fi
 
-HAVE_THUNDER=yes
-
-AC_ARG_ENABLE(thunder, AS_HELP_STRING([--disable-thunder], [disable support for ThunderScan 4-bit RLE algorithm]), [HAVE_THUNDER=no], [HAVE_THUNDER=yes])
+AC_ARG_ENABLE(thunder,
+	      AS_HELP_STRING([--disable-thunder],
+			     [disable support for ThunderScan 4-bit RLE algorithm]),
+	      [HAVE_THUNDER=$enableval], [HAVE_THUNDER=yes])
 
 if test "$HAVE_THUNDER" = "yes" ; then
   AC_DEFINE(THUNDER_SUPPORT,1,[Support ThunderScan 4-bit RLE algorithm])
@@ -183,15 +200,19 @@ fi
 
 HAVE_NEXT=yes
 
-AC_ARG_ENABLE(next, AS_HELP_STRING([--disable-next], [disable support for NeXT 2-bit RLE algorithm]), [HAVE_NEXT=no], [HAVE_NEXT=yes])
+AC_ARG_ENABLE(next,
+	      AS_HELP_STRING([--disable-next],
+			     [disable support for NeXT 2-bit RLE algorithm]),
+	      [HAVE_NEXT=$enableval], [HAVE_NEXT=yes])
 
 if test "$HAVE_NEXT" = "yes" ; then
   AC_DEFINE(NEXT_SUPPORT,1,[Support NeXT 2-bit RLE algorithm])
 fi
 
-HAVE_LOGLUV=yes
-
-AC_ARG_ENABLE(logluv, AS_HELP_STRING([--disable-logluv], [disable support for LogLuv high dynamic range encoding]), [HAVE_LOGLUV=no], [HAVE_LOGLUV=yes])
+AC_ARG_ENABLE(logluv,
+	      AS_HELP_STRING([--disable-logluv],
+			     [disable support for LogLuv high dynamic range encoding]),
+	      [HAVE_LOGLUV=$enableval], [HAVE_LOGLUV=yes])
 
 if test "$HAVE_LOGLUV" = "yes" ; then
   AC_DEFINE(LOGLUV_SUPPORT,1,[Support LogLuv high dynamic range encoding])
@@ -203,15 +224,27 @@ dnl ---------------------------------------------------------------------------
 
 HAVE_ZLIB=no
 
-AC_ARG_ENABLE(zlib, AS_HELP_STRING([--disable-zlib], [disable Zlib usage (required for Deflate compression, enabled by default)]),,)
-AC_ARG_WITH(zlib-include-dir, AS_HELP_STRING([--with-zlib-include-dir=DIR], [location of Zlib headers]),,)
-AC_ARG_WITH(zlib-lib-dir, AS_HELP_STRING([--with-zlib-lib-dir=DIR], [location of Zlib library binary]),,)
+AC_ARG_ENABLE(zlib,
+	      AS_HELP_STRING([--disable-zlib],
+			     [disable Zlib usage (required for Deflate compression, enabled by default)]),,)
+AC_ARG_WITH(zlib-include-dir,
+	    AS_HELP_STRING([--with-zlib-include-dir=DIR],
+			   [location of Zlib headers]),,)
+AC_ARG_WITH(zlib-lib-dir,
+	    AS_HELP_STRING([--with-zlib-lib-dir=DIR],
+			   [location of Zlib library binary]),,)
 
 if test "x$enable_zlib" != "xno" ; then
 
   if test "x$with_zlib_lib_dir" != "x" ; then
-    LIBS="-L$with_zlib_lib_dir $LIBS"
+    LDFLAGS="-L$with_zlib_lib_dir $LDFLAGS"
+  
+    if test "$HAVE_RPATH" = "yes"; then
+      LDFLAGS="-R$with_zlib_lib_dir $LDFLAGS"
+    fi
+  
   fi
+  
   AC_CHECK_LIB(z, inflateEnd, [zlib_lib=yes], [zlib_lib=no],)
   if test "$zlib_lib" = "no" -a "x$with_zlib_lib_dir" != "x"; then
     AC_MSG_ERROR([Zlib library not found at $with_zlib_lib_dir])
@@ -240,10 +273,14 @@ dnl ---------------------------------------------------------------------------
 dnl Check for Pixar log-format algorithm.
 dnl ---------------------------------------------------------------------------
 
-AC_ARG_ENABLE(pixarlog, AS_HELP_STRING([--disable-pixarlog], [disable support for Pixar log-format algorithm (requires Zlib)]), [HAVE_PIXARLOG=no], [HAVE_PIXARLOG=yes])
+AC_ARG_ENABLE(pixarlog,
+	      AS_HELP_STRING([--disable-pixarlog],
+			     [disable support for Pixar log-format algorithm (requires Zlib)]),
+	      [HAVE_PIXARLOG=$enableval], [HAVE_PIXARLOG=yes])
 
 if test "$HAVE_ZLIB" = "yes" -a "$HAVE_PIXARLOG" = "yes" ; then
-  AC_DEFINE(PIXARLOG_SUPPORT,1,[Support Pixar log-format algorithm (requires Zlib)])
+  AC_DEFINE(PIXARLOG_SUPPORT, 1,
+	    [Support Pixar log-format algorithm (requires Zlib)])
 else
   HAVE_PIXARLOG=no
 fi
@@ -254,15 +291,27 @@ dnl ---------------------------------------------------------------------------
 
 HAVE_JPEG=no
 
-AC_ARG_ENABLE(jpeg, AS_HELP_STRING([--disable-jpeg], [disable IJG JPEG library usage (required for JPEG compression, enabled by default)]),,)
-AC_ARG_WITH(jpeg-include-dir, AS_HELP_STRING([--with-jpeg-include-dir=DIR], [location of IJG JPEG library headers]),,)
-AC_ARG_WITH(jpeg-lib-dir, AS_HELP_STRING([--with-jpeg-lib-dir=DIR], [location of IJG JPEG library binary]),,)
+AC_ARG_ENABLE(jpeg,
+	      AS_HELP_STRING([--disable-jpeg],
+			     [disable IJG JPEG library usage (required for JPEG compression, enabled by default)]),,)
+AC_ARG_WITH(jpeg-include-dir,
+	    AS_HELP_STRING([--with-jpeg-include-dir=DIR],
+			   [location of IJG JPEG library headers]),,)
+AC_ARG_WITH(jpeg-lib-dir,
+	    AS_HELP_STRING([--with-jpeg-lib-dir=DIR],
+			   [location of IJG JPEG library binary]),,)
 
 if test "x$enable_jpeg" != "xno" ; then
 
   if test "x$with_jpeg_lib_dir" != "x" ; then
-    LIBS="-L$with_jpeg_lib_dir $LIBS"
+    LDFLAGS="-L$with_jpeg_lib_dir $LDFLAGS"
+  
+    if test "$HAVE_RPATH" = "yes"; then
+      LDFLAGS="-R$with_jpeg_lib_dir $LDFLAGS"
+    fi
+
   fi
+  
   AC_CHECK_LIB(jpeg, jpeg_read_scanlines, [jpeg_lib=yes], [jpeg_lib=no],)
   if test "$jpeg_lib" = "no" -a "x$with_jpeg_lib_dir" != "x" ; then
     AC_MSG_ERROR([IJG JPEG library not found at $with_jpeg_lib_dir])
@@ -291,13 +340,34 @@ dnl ---------------------------------------------------------------------------
 dnl Check for Old JPEG.
 dnl ---------------------------------------------------------------------------
 
-AC_ARG_ENABLE(old-jpeg, AS_HELP_STRING([--enable-old-jpeg], [enable support for Old JPEG compresson (read contrib/ojpeg/README first! Compilation fails with unpatched IJG JPEG library)]), [HAVE_OJPEG=yes], [HAVE_OJPEG=no])
+AC_ARG_ENABLE(old-jpeg,
+	      AS_HELP_STRING([--enable-old-jpeg],
+			     [enable support for Old JPEG compresson (read contrib/ojpeg/README first! Compilation fails with unpatched IJG JPEG library)]),
+	      [HAVE_OJPEG=$enableval], [HAVE_OJPEG=no])
 
 if test "$HAVE_JPEG" = "yes" -a "$HAVE_OJPEG" = "yes" ; then
-  AC_DEFINE(OJPEG_SUPPORT,1,[Support Old JPEG compresson (read contrib/ojpeg/README first! Compilation fails with unpatched IJG JPEG library)])
+  AC_DEFINE(OJPEG_SUPPORT, 1,
+	    [Support Old JPEG compresson (read contrib/ojpeg/README first! Compilation fails with unpatched IJG JPEG library)])
 else
   HAVE_OJPEG=no
 fi
+
+dnl ---------------------------------------------------------------------------
+dnl Check for C++.
+dnl ---------------------------------------------------------------------------
+
+AC_ARG_ENABLE(c++,
+	      AS_HELP_STRING([--enable-c++],
+			     [enable C++ stream API building (requires C++ compiler)]),
+	      [HAVE_CXX=$enableval], [HAVE_CXX=yes])
+
+if test "$HAVE_CXX" = "yes" ; then
+  AC_DEFINE(CXX_SUPPORT, 1, [Support C++ stream API (requires C++ compiler)])
+else
+  HAVE_CXX=no
+fi
+
+AM_CONDITIONAL(HAVE_CXX, test "$HAVE_CXX" = "yes")
 
 dnl ---------------------------------------------------------------------------
 dnl Check for OpenGL and GLUT.
@@ -326,9 +396,10 @@ dnl ---------------------------------------------------------------------------
 dnl Default handling of strip chopping support.
 dnl ---------------------------------------------------------------------------
 
-HAVE_STRIPCHOP=yes
-
-AC_ARG_ENABLE(strip-chopping, AS_HELP_STRING([--disable-strip-chopping], [disable support for strip chopping (whether or not to convert single-strip uncompressed images to mutiple strips of ~8Kb to reduce memory usage)]), [HAVE_STRIPCHOP=no], [HAVE_STRIPCHOP=yes])
+AC_ARG_ENABLE(strip-chopping,
+	      AS_HELP_STRING([--disable-strip-chopping],
+			     [disable support for strip chopping (whether or not to convert single-strip uncompressed images to mutiple strips of ~8Kb to reduce memory usage)]),
+	      [HAVE_STRIPCHOP=$enableval], [HAVE_STRIPCHOP=yes])
 
 if test "$HAVE_STRIPCHOP" = "yes" ; then
   AC_DEFINE(STRIPCHOP_DEFAULT,TIFF_STRIPCHOP,[Support strip chopping (whether or not to convert single-strip uncompressed images to mutiple strips of ~8Kb to reduce memory usage)])
@@ -343,12 +414,15 @@ dnl ---------------------------------------------------------------------------
 dnl Default handling of ASSOCALPHA support.
 dnl ---------------------------------------------------------------------------
 
-HAVE_EXTRASAMPLE_AS_ALPHA=yes
-
-AC_ARG_ENABLE(extrasample-as-alpha, AS_HELP_STRING([--disable-extrasample-as-alpha], [the RGBA interface will treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many packages produce RGBA files but don't mark the alpha properly]), [HAVE_EXTRASAMPLE_AS_ALPHA=no], [HAVE_EXTRASAMPLE_AS_ALPHA=yes])
+AC_ARG_ENABLE(extrasample-as-alpha,
+	      AS_HELP_STRING([--disable-extrasample-as-alpha],
+			     [the RGBA interface will treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many packages produce RGBA files but don't mark the alpha properly]),
+	      [HAVE_EXTRASAMPLE_AS_ALPHA=$enableval],
+	      [HAVE_EXTRASAMPLE_AS_ALPHA=yes])
 
 if test "$HAVE_EXTRASAMPLE_AS_ALPHA" = "yes" ; then
-  AC_DEFINE(DEFAULT_EXTRASAMPLE_AS_ALPHA,1,[Treat extra sample as alpha (default enabled). The RGBA interface will treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many packages produce RGBA files but don't mark the alpha properly.])
+  AC_DEFINE(DEFAULT_EXTRASAMPLE_AS_ALPHA, 1,
+	    [Treat extra sample as alpha (default enabled). The RGBA interface will treat a fourth sample with no EXTRASAMPLE_ value as being ASSOCALPHA. Many packages produce RGBA files but don't mark the alpha properly.])
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -356,12 +430,15 @@ dnl Default handling of YCbCr subsampling support.
 dnl See Bug 168 in Bugzilla, and JPEGFixupTestSubsampling() for details.
 dnl ---------------------------------------------------------------------------
 
-CHECK_JPEG_YCBCR_SUBSAMPLING=yes
-
-AC_ARG_ENABLE(check-ycbcr-subsampling, AS_HELP_STRING([--disable-check-ycbcr-subsampling], [disable picking up YCbCr subsampling info from the JPEG data stream to support files lacking the tag]), [CHECK_JPEG_YCBCR_SUBSAMPLING=no], [CHECK_JPEG_YCBCR_SUBSAMPLING=yes])
+AC_ARG_ENABLE(check-ycbcr-subsampling,
+	      AS_HELP_STRING([--disable-check-ycbcr-subsampling],
+			     [disable picking up YCbCr subsampling info from the JPEG data stream to support files lacking the tag]),
+	      [CHECK_JPEG_YCBCR_SUBSAMPLING=$enableval],
+	      [CHECK_JPEG_YCBCR_SUBSAMPLING=yes])
 
 if test "$CHECK_JPEG_YCBCR_SUBSAMPLING" = "yes" ; then
-  AC_DEFINE(CHECK_JPEG_YCBCR_SUBSAMPLING,1,[Pick up YCbCr subsampling info from the JPEG data stream to support files lacking the tag (default enabled).])
+  AC_DEFINE(CHECK_JPEG_YCBCR_SUBSAMPLING, 1,
+	    [Pick up YCbCr subsampling info from the JPEG data stream to support files lacking the tag (default enabled).])
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -403,6 +480,8 @@ LOC_MSG([Libtiff is now configured for ${host}])
 LOC_MSG()
 LOC_MSG([  Installation directory:            ${prefix}])
 LOC_MSG([  C compiler:                        ${CC} ${CFLAGS}])
+LOC_MSG([  C++ compiler:                      ${CXX} ${CXXFLAGS}])
+LOC_MSG([  Enable runtime linker paths:       ${HAVE_RPATH}])
 LOC_MSG()
 LOC_MSG([ Support for internal codecs:])
 LOC_MSG([  CCITT Group 3 & 4 algorithms:      ${HAVE_CCITT}])
@@ -417,6 +496,8 @@ LOC_MSG([  ZLIB support:                      ${HAVE_ZLIB}])
 LOC_MSG([  Pixar log-format algorithm:        ${HAVE_PIXARLOG}])
 LOC_MSG([  JPEG support:                      ${HAVE_JPEG}])
 LOC_MSG([  Old JPEG support:                  ${HAVE_OJPEG}])
+LOC_MSG()
+LOC_MSG([  C++ support:                       ${HAVE_CXX}])
 LOC_MSG()
 LOC_MSG([  OpenGL support:                    ${HAVE_OPENGL}])
 LOC_MSG()

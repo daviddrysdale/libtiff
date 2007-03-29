@@ -1,4 +1,4 @@
-# $Id: nmake.opt,v 1.6 2004/09/08 18:04:40 dron Exp $
+# $Id: nmake.opt,v 1.11 2004/12/04 11:08:43 dron Exp $
 #
 # Copyright (C) 2004, Andrey Kiselev <dron@remotesensing.org>
 #
@@ -25,11 +25,15 @@
 # You may edit this file to specify building options.
 
 # 
-# Select _CONSOLE to build a library which reports errors to stderr, or
-# _WINDOWED to build such that errors are reported via MessageBox().
+# Select WINMODE_CONSOLE to build a library which reports errors to stderr, or
+# WINMODE_WINDOWED to build such that errors are reported via MessageBox().
 #
-WINMODE = -DTIF_PLATFORM_CONSOLE
-#WINMODE = -DTIF_PLATFORM_WINDOWED
+WINMODE_CONSOLE = 1
+#WINMODE_WINDOWED = 1
+
+# Uncomment following line to enable using Windows Common RunTime Library
+# instead of system calls. See notes on top of tif_unix.c module for details.
+#USE_WIN_CRT_LIB = 1
 
 #
 # Comment out the following lines to disable internal codecs.
@@ -57,7 +61,7 @@ LOGLUV_SUPPORT	= 1
 
 #
 # Uncomment following lines to enable Old JPEG support
-# (patched IJG JPEG library required, read the contrib\ojpeg\README first).
+# (modified IJG JPEG library required, read the contrib\ojpeg\README first).
 #
 #OJPEG_SUPPORT = 1
 
@@ -74,7 +78,7 @@ LOGLUV_SUPPORT	= 1
 # Uncomment following line to enable Pixar log-format algorithm
 # (Zlib required).
 #
-PIXARLOG_SUPPORT = 1
+#PIXARLOG_SUPPORT = 1
 
 #
 # Comment out the following lines to disable strip chopping
@@ -98,18 +102,30 @@ EXTRASAMPLE_AS_ALPHA_SUPPORT = 1
 CHECK_JPEG_YCBCR_SUBSAMPLING = 1
 
 #
+# Pick debug or optimized build flags.  We default to an optimized build
+# with no debugging information.
+# NOTE: /GX option required if you want to build the C++ stream API
+#
+OPTFLAGS =	/Ox /MD /GX /W3
+#OPTFLAGS = 	/Zi 
+
 # Compiler specific options. You may probably want to adjust compilation
 # parameters in CFLAGS variable. Refer to your compiler documentation
 # for the option reference.
 #
 MAKE	=	nmake /nologo
 CC	=	cl /nologo
+CXX	=	cl /nologo
 AR	=	lib /nologo
 LD	=	link /nologo
 
-CFLAGS  =	/W3 /MD $(INCL) $(WINMODE) $(EXTRAFLAGS)
-EXTRAFLAGS	=
+CFLAGS  =	$(OPTFLAGS) $(INCL) $(EXTRAFLAGS)
+CXXFLAGS =	$(OPTFLAGS) $(INCL) $(EXTRAFLAGS)
+EXTRAFLAGS =
 LIBS	=
+
+# Name of the output shared library
+DLLNAME	= libtiff.dll
 
 #
 ########### There is nothing to edit below this line normally. ###########
@@ -117,6 +133,13 @@ LIBS	=
 
 # Set the native cpu bit order
 EXTRAFLAGS	= -DFILLODER_LSB2MSB $(EXTRAFLAGS)
+
+!IFDEF WINMODE_WINDOWED
+EXTRAFLAGS	= -DTIF_PLATFORM_WINDOWED $(EXTRAFLAGS)
+LIBS		= user32.lib $(LIBS)
+!ELSE
+EXTRAFLAGS	= -DTIF_PLATFORM_CONSOLE $(EXTRAFLAGS)
+!ENDIF
 
 # Codec stuff
 !IFDEF CCITT_SUPPORT

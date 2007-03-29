@@ -1,3 +1,260 @@
+2004-12-20  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff 3.7.1 released.
+
+	* html/tiffset.1.html: Add missed manual page as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=678
+
+	* libtiff/tiff.h: Revert back libtiff data type definitions as per
+	bug http://bugzilla.remotesensing.org/show_bug.cgi?id=687
+
+2004-12-19  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dirread.c: Do not forget about TIFF_VARIABLE2 when
+	checking for tag count in TIFFReadDirectory() function. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=713
+
+	* libtiff/{tif_dirread.c, tif_fax3.c}: More argument checking in
+	CheckMallock() function.
+
+	* libtiff/tif_getimage.c: Support for multiple-alpha-channelled
+	RGB-images as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=718
+
+2004-12-15  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/tif_getimage.c: #define A1 bracketing for clean build on
+	SunPro compiler. 
+
+2004-12-11  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* autogen.sh: aclocal and autoheader should be executed after
+	libtoolize.  Also add '-I .' to aclocal invocation to check
+	current directory for macros.
+
+2004-12-10  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dirwrite.c: Always write TIFFTAG_SUBIFD using LONG type
+	as per bugs
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=703
+
+	and
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=704
+
+2004-12-04  Andrey Kiselev  <dron@remotesensing.org>
+
+	* nmake.opt: Link with the user32.lib in windowed mode. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=697
+
+	* libtiff/tif_win32.c: Use char* strings instead of TCHAR in windowed
+	mode as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=697
+
+	* libtiff/tif_config.in.vc: Removed unneded definitions for
+	read/open/close/lseek functions to fix the
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=680
+	
+2004-12-03  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/{tif_dir.c, tif_dirread.c}: Remove TIFFReassignTagToIgnore()
+	call from the TIFFReadDirectory() function. TIFFReassignTagToIgnore
+	must be removed in the future, as it was never used properly. As per
+	bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=692
+
+2004-11-30  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* libtiff/tif_jpeg.c: Added a work-around in order to allow
+	compilation with the heavily modified version of libjpeg delivered
+	with Cygwin.
+
+2004-11-29  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dir.c: Properly handle tags, which have the uint32
+	counts. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=693
+
+	* tools/fax2ps.c: Be able to extract the first page (#0). As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=690
+
+2004-11-28  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_unix.c: Make UNIX module compilable (and usable)
+	on Windows.
+
+	* nmake.opt: Add missed DLLNAME variable.
+
+2004-11-26  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/makefile.vc: make it easier to rename the libtiff DLL. 
+
+2004-11-24  Andrey Kiselev  <dron@remotesensing.org>
+
+	* man/libtiff.3tiff: Improvements in the "LIST OF ROUTINES" table as
+	per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=545
+
+	* man/tiffset.1: Added manual page for tiffset tool written by Jay
+	Berkenbilt. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=678
+
+2004-11-23  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/tif_error.c: fixed TIFFerror call to be TIFFError.
+
+2004-11-21  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* html/document.html: Updated Adobe web links as per email from Joris.
+
+2004-11-21  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/{tiffio.hxx, tiffio.h}: C++ stream interface moved to new
+	file tiffio.hxx. We don't have any C++ in tiffio.h, those who want to
+	use C++ streams should #include <tiffio.hxx>.
+
+2004-11-13  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tiff.h: Added Adobe DNG tags.
+
+	* libtiff/tif_win32.c: Typo fixed.
+
+	* libtiff/{tif_stream.cxx, tiffio.h}: C++ stream interface updated to
+	be compliant with the latest standard. Appropriate additions in
+	makefiles now completed.
+
+2004-11-11  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tools/tiffset.c, libtiff/tif_dirinfo.c: Properly handle the
+	different tag types. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=600
+
+2004-11-10  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_aux.c: Set the appropriate ReferenceBlackWhite array for
+	YCbCr image which lacks that tag (noted by Hans Petter Selasky).
+
+2004-11-09  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_color.c: Division by zero fixed (Hans Petter Selasky).
+
+2004-11-07  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/{tif_stream.cxx, tiffio.h}: Added C++ stream interface
+	contributed by Edward Lam (see
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=654 for details).
+	Though no changes in any makefiles yet.
+
+2004-11-05  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/tif_open.c: Removed close() in TIFFClientOpen() if file
+	is bad. This is the callers responsibility.
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=651
+
+2004-11-05  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/{tiffio.h, tif_win32.c, libtiff.def}: Added TIFFOpenW()
+	function to work with the double byte strings (used to represent
+	filenames in some locales). As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=625
+
+	* libtiff/tif_dirread.c: Fixed problem when fetching BitsPerSample and
+	Compression tags of type LONG from broken TIFFS as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=662
+
+	* libtiff/tif_dirinfo.c: Fixed definition for TIFFTAG_RICHTIFFIPTC,
+	the writecount should have uint32 type. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=662
+
+	* libtiff/tif_write.c: Fixed wrong if() statement in
+	TIFFAppendToStrip() function as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=660
+
+2004-11-04  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dirinfo.c: Change definition for TIFFTAG_EXTRASAMPLES
+	field. The caller should supply a count when setting this field. As
+	per bug
+
+	 http://bugzilla.remotesensing.org/show_bug.cgi?id=648
+	
+	* libtiff/{tif_jpeg.c, tif_ojpeg.c}: TIFFTAG_JPEGTABLES should have
+	uint32 count. Use this type everywhere.
+
+2004-11-03  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/tif_next.c: avoid use of u_long and u_char types.  Bug 653.
+
+2004-11-02  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* tools/tiff2rgba.c: removed extra newlines in usage message.
+
+2004-10-30  Andrey Kiselev  <dron@remotesensing.org>
+	
+	* libtiff/tif_dirwrite.c: Improvements in tag writing code.
+
+	* tools/tiff2ps.c: Fixed wrong variable data type when read Position
+	tags (Tristan Hill).
+
+2004-10-30  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* libtiff/tiffiop.h: added fallback definition of assert() if we
+	don't have assert.h.
+
+2004-10-29  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_fax3.c: Fixed case with the wrong decode routines
+	choosing when the incorrect Group4Options tag set. As per bug
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=323
+
+	* libtiff/tif_dirwrite.c: Fixed problem with passing count variable of
+	wrong type when writing the TIFF_BYTE/TIFF_SBYTE tags in
+	TIFFWriteNormalTag().
+
+2004-10-28  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tools/tiff2ps.c: Fixed wrong variable data type when read Resolution
+	tags (Peter Fales).
+
+	* tools/{bmp2tiff.c, raw2tiff.c}: Get rid of stream I/O functions.
+
+2004-10-28  Frank Warmerdam  <warmerdam@pobox.com>
+
+	* tools/tiff2pdf.c: added casts to avoid warnings.
+
+	* libtiff/libtiff.def: Added several more entry points required
+	to link fax2tiff.c against the DLL on windows. 
+
+2004-10-27  Andrey Kiselev  <dron@remotesensing.org>
+
+	* configure, configure.ac: Added --enable-rpath option to embed linker
+	paths into library binary.
+
+2004-10-26  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tools/tiffset.c: Check the malloc return value (Dmitry V. Levin).
+
+	* libtiff/{tif_strip.c, tif_tile.c}: Zero division problem fixed
+	(Vladimir Nadvornik, Dmitry V. Levin).
+
 2004-10-16  Andrey Kiselev  <dron@remotesensing.org>
 
 	* libtiff 3.7.0 released.
