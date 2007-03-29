@@ -1,7 +1,7 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tiffconf.h,v 1.13 1996/04/05 17:36:53 sam Rel $ */
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -69,16 +69,10 @@
  *    COLORIMETRY_SUPPORT enable support for 6.0 colorimetry tags
  *    YCBCR_SUPPORT	enable support for 6.0 YCbCr tags
  *    CMYK_SUPPORT	enable support for 6.0 CMYK tags
- *    ICC_SUPPORT	enable support for ICC profile tag
- *    PHOTOSHOP_SUPPORT enable support for PHOTOSHOP resource tag
- *    IPTC_SUPPORT  enable support for RichTIFF IPTC tag
  */
 #define	COLORIMETRY_SUPPORT
 #define	YCBCR_SUPPORT
 #define	CMYK_SUPPORT
-#define	ICC_SUPPORT
-#define PHOTOSHOP_SUPPORT
-#define IPTC_SUPPORT
 #endif /* FEATURE_SUPPORT */
 
 #ifndef COMPRESSION_SUPPORT
@@ -97,14 +91,12 @@
  *    ZIP_SUPPORT	enable support for Deflate algorithm
  *			(requires freely available zlib software, see tif_zip.c)
  *    PIXARLOG_SUPPORT	enable support for Pixar log-format algorithm
- *    LOGLUV_SUPPORT	enable support for LogLuv high dynamic range encoding
  */
 #define	CCITT_SUPPORT
 #define	PACKBITS_SUPPORT
 #define	LZW_SUPPORT
 #define	THUNDER_SUPPORT
 #define	NEXT_SUPPORT
-#define LOGLUV_SUPPORT
 #endif /* COMPRESSION_SUPPORT */
 
 /*
@@ -123,13 +115,12 @@
 /*
  * ``Orthogonal Features''
  *
- * STRIPCHOP_DEFAULT	default handling of strip chopping support (whether
- *			or not to convert single-strip uncompressed images
- *			to mutiple strips of ~8Kb--to reduce memory use)
+ * STRIPCHOP_SUPPORT	automatically convert single-strip uncompressed images
+ *			to mutiple strips of ~8Kb (for reducing memory use)
  * SUBIFD_SUPPORT	enable support for SubIFD tag (thumbnails and such)
  */
-#ifndef STRIPCHOP_DEFAULT
-#define	STRIPCHOP_DEFAULT	TIFF_STRIPCHOP	/* default is to enable */
+#ifndef STRIPCHOP_SUPPORT
+#define	STRIPCHOP_SUPPORT	1	/* enable strip chopping */
 #endif
 #ifndef SUBIFD_SUPPORT
 #define	SUBIFD_SUPPORT		1	/* enable SubIFD tag (330) support */

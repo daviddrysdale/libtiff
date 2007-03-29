@@ -1,8 +1,8 @@
-/* "$Header$ */
+/* "$Header: /usr/people/sam/tiff/libtiff/RCS/mkversion.c,v 1.4 1996/01/10 19:34:25 sam Rel $ */
 
 /*
- * Copyright (c) 1995-1997 Sam Leffler
- * Copyright (c) 1995-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1995-1996 Sam Leffler
+ * Copyright (c) 1995-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided

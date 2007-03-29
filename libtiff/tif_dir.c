@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_dir.c,v 1.156 1996/01/10 20:37:08 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -50,8 +50,6 @@ _TIFFsetByteArray(void** vpp, void* vp, long n)
 }
 void _TIFFsetString(char** cpp, char* cp)
     { _TIFFsetByteArray((void**) cpp, (void*) cp, (long) (strlen(cp)+1)); }
-void _TIFFsetNString(char** cpp, char* cp, long n)
-    { _TIFFsetByteArray((void**) cpp, (void*) cp, n); }
 void _TIFFsetShortArray(uint16** wpp, uint16* wp, long n)
     { _TIFFsetByteArray((void**) wpp, (void*) wp, n*sizeof (uint16)); }
 void _TIFFsetLongArray(uint32** lpp, uint32* lp, long n)
@@ -84,34 +82,6 @@ setExtraSamples(TIFFDirectory* td, va_list ap, int* v)
 	return (1);
 }
 
-#ifdef CMYK_SUPPORT
-static int
-checkInkNamesString(TIFF* tif, int slen, const char* s)
-{
-	TIFFDirectory* td = &tif->tif_dir;
-	int i = td->td_samplesperpixel;
-
-	if (slen > 0) {
-		const char* ep = s+slen;
-		const char* cp = s;
-		for (; i > 0; i--) {
-			for (; *cp != '\0'; cp++)
-				if (cp >= ep)
-					goto bad;
-			cp++;				/* skip \0 */
-		}
-		return (cp-s);
-	}
-bad:
-	TIFFError("TIFFSetField",
-	    "%s: Invalid InkNames value; expecting %d names, found %d",
-	    tif->tif_name,
-	    td->td_samplesperpixel,
-	    td->td_samplesperpixel-i);
-	return (0);
-}
-#endif
-
 static int
 _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 {
@@ -119,8 +89,6 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 	int status = 1;
 	uint32 v32;
 	int i, v;
-	double d;
-	char* s;
 
 	switch (tag) {
 	case TIFFTAG_SUBFILETYPE:
@@ -344,12 +312,6 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 	case TIFFTAG_IMAGEDEPTH:
 		td->td_imagedepth = va_arg(ap, uint32);
 		break;
-	case TIFFTAG_STONITS:
-		d = va_arg(ap, dblparam_t);
-		if (d <= 0.)
-			goto badvaluedbl;
-		td->td_stonits = d;
-		break;
 #if SUBIFD_SUPPORT
 	case TIFFTAG_SUBIFD:
 		if ((tif->tif_flags & TIFF_INSUBIFD) == 0) {
@@ -402,46 +364,11 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 		td->td_dotrange[1] = (uint16) va_arg(ap, int);
 		break;
 	case TIFFTAG_INKNAMES:
-		i = va_arg(ap, int);
-		s = va_arg(ap, char*);
-		i = checkInkNamesString(tif, i, s);
-		if (status = (i > 0)) {
-			_TIFFsetNString(&td->td_inknames, s, i);
-			td->td_inknameslen = i;
-		}
-		break;
-	case TIFFTAG_NUMBEROFINKS:
-		td->td_ninks = (uint16) va_arg(ap, int);
+		_TIFFsetString(&td->td_inknames, va_arg(ap, char*));
 		break;
 	case TIFFTAG_TARGETPRINTER:
 		_TIFFsetString(&td->td_targetprinter, va_arg(ap, char*));
 		break;
-#endif
-#ifdef ICC_SUPPORT
-	case TIFFTAG_ICCPROFILE:
-		td->td_profileLength = (uint32) va_arg(ap, uint32);
-		_TIFFsetByteArray(&td->td_profileData, va_arg(ap, void*),
-		    td->td_profileLength);
-		break;
-#endif
-#ifdef PHOTOSHOP_SUPPORT
- 	case TIFFTAG_PHOTOSHOP:
-  		td->td_photoshopLength = (uint32) va_arg(ap, uint32);
-  		_TIFFsetByteArray (&td->td_photoshopData, va_arg(ap, void*),
- 			td->td_photoshopLength);
- 		break;
-#endif
-#ifdef IPTC_SUPPORT
-    case TIFFTAG_RICHTIFFIPTC: 
-  		td->td_richtiffiptcLength = (uint32) va_arg(ap, uint32);
-#ifdef PHOTOSHOP_SUPPORT
-  		_TIFFsetLongArray ((uint32**)&td->td_richtiffiptcData, va_arg(ap, uint32*),
- 			td->td_richtiffiptcLength);
-#else
-  		_TIFFsetByteArray (&td->td_photoshopData, va_arg(ap, void*),
- 			td->td_photoshopLength);
-#endif
- 		break;
 #endif
 	default:
 		/*
@@ -475,11 +402,6 @@ badvalue:
 	return (0);
 badvalue32:
 	TIFFError(tif->tif_name, "%ld: Bad value for \"%s\"", v32,
-	    _TIFFFieldWithTag(tif, tag)->field_name);
-	va_end(ap);
-	return (0);
-badvaluedbl:
-	TIFFError(tif->tif_name, "%f: Bad value for \"%s\"", d,
 	    _TIFFFieldWithTag(tif, tag)->field_name);
 	va_end(ap);
 	return (0);
@@ -708,9 +630,6 @@ _TIFFVGetField(TIFF* tif, ttag_t tag, va_list ap)
 	case TIFFTAG_IMAGEDEPTH:
 		*va_arg(ap, uint32*) = td->td_imagedepth;
 		break;
-	case TIFFTAG_STONITS:
-		*va_arg(ap, double*) = td->td_stonits;
-		break;
 #if SUBIFD_SUPPORT
 	case TIFFTAG_SUBIFD:
 		*va_arg(ap, uint16*) = td->td_nsubifd;
@@ -758,30 +677,9 @@ _TIFFVGetField(TIFF* tif, ttag_t tag, va_list ap)
 	case TIFFTAG_INKNAMES:
 		*va_arg(ap, char**) = td->td_inknames;
 		break;
-	case TIFFTAG_NUMBEROFINKS:
-		*va_arg(ap, uint16*) = td->td_ninks;
-		break;
 	case TIFFTAG_TARGETPRINTER:
 		*va_arg(ap, char**) = td->td_targetprinter;
 		break;
-#endif
-#ifdef ICC_SUPPORT
-	case TIFFTAG_ICCPROFILE:
-		*va_arg(ap, uint32*) = td->td_profileLength;
-		*va_arg(ap, void**) = td->td_profileData;
-		break;
-#endif
-#ifdef PHOTOSHOP_SUPPORT
- 	case TIFFTAG_PHOTOSHOP:
- 		*va_arg(ap, uint32*) = td->td_photoshopLength;
- 		*va_arg(ap, void**) = td->td_photoshopData;
- 		break;
-#endif
-#ifdef IPTC_SUPPORT
- 	case TIFFTAG_RICHTIFFIPTC:
- 		*va_arg(ap, uint32*) = td->td_richtiffiptcLength;
- 		*va_arg(ap, void**) = td->td_richtiffiptcData;
- 		break;
 #endif
 	default:
 		/*
@@ -877,15 +775,6 @@ TIFFFreeDirectory(TIFF* tif)
 	CleanupField(td_transferfunction[1]);
 	CleanupField(td_transferfunction[2]);
 #endif
-#ifdef ICC_SUPPORT
-	CleanupField(td_profileData);
-#endif
-#ifdef PHOTOSHOP_SUPPORT
-	CleanupField(td_photoshopData);
-#endif
-#ifdef IPTC_SUPPORT
-	CleanupField(td_richtiffiptcData);
-#endif
 	CleanupField(td_stripoffset);
 	CleanupField(td_stripbytecount);
 }
@@ -933,7 +822,6 @@ TIFFDefaultDirectory(TIFF* tif)
 #endif
 #ifdef CMYK_SUPPORT
 	td->td_inkset = INKSET_CMYK;
-	td->td_ninks = 4;
 #endif
 	tif->tif_postdecode = _TIFFNoPostDecode;
 	tif->tif_vsetfield = _TIFFVSetField;
@@ -986,20 +874,6 @@ TIFFAdvanceDirectory(TIFF* tif, uint32* nextdir, toff_t* off)
 	if (tif->tif_flags & TIFF_SWAB)
 		TIFFSwabLong(nextdir);
 	return (1);
-}
-
-/*
- * Count the number of directories in a file.
- */
-tdir_t
-TIFFNumberOfDirectories(TIFF* tif)
-{
-	uint32 nextdir = tif->tif_header.tiff_diroff;
-	tdir_t n = 0;
-
-	while (nextdir != 0 && TIFFAdvanceDirectory(tif, &nextdir, NULL))
-		n++;
-	return (n);
 }
 
 /*

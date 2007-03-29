@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_jpeg.c,v 1.25 1996/01/10 19:33:04 sam Rel $ */
 
 /*
- * Copyright (c) 1994-1997 Sam Leffler
- * Copyright (c) 1994-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1994-1996 Sam Leffler
+ * Copyright (c) 1994-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -607,7 +607,7 @@ JPEGPreDecode(TIFF* tif, tsample_t s)
 {
 	JPEGState *sp = JState(tif);
 	TIFFDirectory *td = &tif->tif_dir;
-	static const char module[] = "JPEGPreDecode";
+	static char module[] = "JPEGPreDecode";
 	uint32 segment_width, segment_height;
 	int downsampled_output;
 	int ci;
@@ -901,7 +901,7 @@ JPEGSetupEncode(TIFF* tif)
 {
 	JPEGState* sp = JState(tif);
 	TIFFDirectory *td = &tif->tif_dir;
-	static const char module[] = "JPEGSetupEncode";
+	static char module[] = "JPEGSetupEncode";
 
 	assert(sp != NULL);
 	assert(!sp->cinfo.comm.is_decompressor);
@@ -1017,7 +1017,7 @@ JPEGPreEncode(TIFF* tif, tsample_t s)
 {
 	JPEGState *sp = JState(tif);
 	TIFFDirectory *td = &tif->tif_dir;
-	static const char module[] = "JPEGPreEncode";
+	static char module[] = "JPEGPreEncode";
 	uint32 segment_width, segment_height;
 	int downsampled_input;
 

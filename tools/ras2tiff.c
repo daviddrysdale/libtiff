@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/tools/RCS/ras2tiff.c,v 1.29 1996/01/10 19:35:30 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -32,9 +32,7 @@
 #include "rasterfile.h"
 #include "tiffio.h"
 
-#ifndef howmany
 #define	howmany(x, y)	(((x)+((y)-1))/(y))
-#endif
 #define	streq(a,b)	(strcmp(a,b) == 0)
 #define	strneq(a,b,n)	(strncmp(a,b,n) == 0)
 

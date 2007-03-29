@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/tools/RCS/tiff2ps.c,v 1.48 1996/01/10 19:35:35 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -46,7 +46,6 @@ int	printAll = FALSE;		/* print all images in file */
 int	generateEPSF = TRUE;		/* generate Encapsulated PostScript */
 int 	PSduplex = FALSE;		/* enable duplex printing */
 int	PStumble = FALSE;		/* enable top edge binding */
-int	PSavoiddeadzone = TRUE;		/* enable avoiding printer deadzone */
 char	*filename;			/* input filename */
 
 /*
@@ -84,7 +83,7 @@ main(int argc, char* argv[])
 	extern int optind;
 	FILE* output = stdout;
 
-	while ((c = getopt(argc, argv, "h:w:d:o:O:aezps128DT")) != -1)
+	while ((c = getopt(argc, argv, "h:w:d:o:O:aeps128DT")) != -1)
 		switch (c) {
 		case 'd':
 			dirnum = atoi(optarg);
@@ -124,9 +123,6 @@ main(int argc, char* argv[])
 			break;
 		case 'w':
 			pageWidth = atof(optarg);
-			break;
-		case 'z':
-			PSavoiddeadzone = FALSE;
 			break;
 		case '1':
 			level2 = FALSE;
@@ -174,6 +170,15 @@ static	int alpha;
 static int
 checkImage(TIFF* tif)
 {
+	switch (bitspersample) {
+	case 1: case 2:
+	case 4: case 8:
+		break;
+	default:
+		TIFFError(filename, "Can not handle %d-bit/sample image",
+		    bitspersample);
+		return (0);
+	}
 	switch (photometric) {
 	case PHOTOMETRIC_YCBCR:
 		if (compression == COMPRESSION_JPEG &&
@@ -203,38 +208,12 @@ checkImage(TIFF* tif)
 	case PHOTOMETRIC_MINISBLACK:
 	case PHOTOMETRIC_MINISWHITE:
 		break;
-	case PHOTOMETRIC_LOGL:
-	case PHOTOMETRIC_LOGLUV:
-		if (compression != COMPRESSION_SGILOG &&
-		    compression != COMPRESSION_SGILOG24) {
-			TIFFError(filename,
-		    "Can not handle %s data with compression other than SGILog",
-			    (photometric == PHOTOMETRIC_LOGL) ?
-				"LogL" : "LogLuv"
-			);
-			return (0);
-		}
-		/* rely on library to convert to RGB/greyscale */
-		TIFFSetField(tif, TIFFTAG_SGILOGDATAFMT, SGILOGDATAFMT_8BIT);
-		photometric = (photometric == PHOTOMETRIC_LOGL) ?
-		    PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB;
-		bitspersample = 8;
-		break;
 	case PHOTOMETRIC_CIELAB:
 		/* fall thru... */
 	default:
 		TIFFError(filename,
 		    "Can not handle image with PhotometricInterpretation=%d",
 		    photometric);
-		return (0);
-	}
-	switch (bitspersample) {
-	case 1: case 2:
-	case 4: case 8:
-		break;
-	default:
-		TIFFError(filename, "Can not handle %d-bit/sample image",
-		    bitspersample);
 		return (0);
 	}
 	if (planarconfiguration == PLANARCONFIG_SEPARATE && extrasamples > 0)
@@ -301,7 +280,7 @@ setupPageState(TIFF* tif, uint32* pw, uint32* ph, float* pprw, float* pprh)
 		yres = PS_UNIT_SIZE;
 	switch (res_unit) {
 	case RESUNIT_CENTIMETER:
-		xres *= 2.54, yres *= 2.54;
+		xres /= 2.54, yres /= 2.54;
 		break;
 	case RESUNIT_NONE:
 		xres *= PS_UNIT_SIZE, yres *= PS_UNIT_SIZE;
@@ -335,7 +314,6 @@ TIFF2PS(FILE* fd, TIFF* tif, float pw, float ph)
 {
 	uint32 w, h;
 	float ox, oy, prw, prh;
-	float scale;
 	uint32 subfiletype;
 	uint16* sampleinfo;
 	static int npages = 0;
@@ -353,6 +331,7 @@ TIFF2PS(FILE* fd, TIFF* tif, float pw, float ph)
 		setupPageState(tif, &w, &h, &prw, &prh);
 		if (!npages)
 		        PSHead(fd, tif, w, h, prw, prh, ox, oy);
+		tf_bytesperrow = TIFFScanlineSize(tif);
 		TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,
 		    &bitspersample);
 		TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL,
@@ -378,21 +357,14 @@ TIFF2PS(FILE* fd, TIFF* tif, float pw, float ph)
 			}
 		}
 		if (checkImage(tif)) {
-			tf_bytesperrow = TIFFScanlineSize(tif);
 			npages++;
 			fprintf(fd, "%%%%Page: %d %d\n", npages, npages);
 			fprintf(fd, "gsave\n");
 			fprintf(fd, "100 dict begin\n");
-			if (pw != 0 && ph != 0) {
-				/* NB: maintain image aspect ratio */
-				scale = (pw*PS_UNIT_SIZE/prw) < (ph*PS_UNIT_SIZE/prh) ?
-				    (pw*PS_UNIT_SIZE/prw) :
-				    (ph*PS_UNIT_SIZE/prh);
-				if (scale > 1.0)
-					scale = 1.0;
-				fprintf(fd, "0 %f translate\n", ph*PS_UNIT_SIZE-prh*scale);
-				fprintf(fd, "%f %f scale\n", prw*scale, prh*scale);
-			} else
+			if (pw != 0 && ph != 0)
+				fprintf(fd, "%f %f scale\n",
+				    pw*PS_UNIT_SIZE, ph*PS_UNIT_SIZE);
+			else
 				fprintf(fd, "%f %f scale\n", prw, prh);
 			PSpage(fd, tif, w, h);
 			fprintf(fd, "end\n");
@@ -431,16 +403,6 @@ end\n\
 %%EndFeature\n\
 ";
 
-static char AvoidDeadZonePreamble[] = "\
-gsave newpath clippath pathbbox grestore\n\
-  4 2 roll 2 copy translate\n\
-  exch 3 1 roll sub 3 1 roll sub exch\n\
-  currentpagedevice /PageSize get aload pop\n\
-  exch 3 1 roll div 3 1 roll div abs exch abs\n\
-  2 copy gt { exch } if pop\n\
-  dup 1 lt { dup scale } { pop } ifelse\n\
-";
-
 void
 PSHead(FILE *fd, TIFF *tif, uint32 w, uint32 h, float pw, float ph,
 	float ox, float oy)
@@ -466,8 +428,6 @@ PSHead(FILE *fd, TIFF *tif, uint32 w, uint32 h, float pw, float ph,
 	        fprintf(fd, "%s", DuplexPreamble);
 	if (PStumble)
 	        fprintf(fd, "%s", TumblePreamble);
-	if (PSavoiddeadzone && level2)
-	        fprintf(fd, "%s", AvoidDeadZonePreamble);
 	fprintf(fd, "%%%%EndSetup\n");
 }
 
@@ -623,7 +583,7 @@ PS_Lvl2ImageDict(FILE* fd, TIFF* tif, uint32 w, uint32 h)
 	fputs("  /ImageType 1\n", fd);
 	fprintf(fd, "  /Width %lu\n", (unsigned long) tile_width);
 	fprintf(fd, "  /Height %lu\n", (unsigned long) tile_height);
-	if (planarconfiguration == PLANARCONFIG_SEPARATE && samplesperpixel > 1)
+	if (planarconfiguration == PLANARCONFIG_SEPARATE)
 		fputs("  /MultipleDataSources true\n", fd);
 	fprintf(fd, "  /ImageMatrix [ %lu 0 0 %ld %s %s ]\n",
 	    (unsigned long) w, - (long)h, im_x, im_y);
@@ -705,7 +665,7 @@ PS_Lvl2ImageDict(FILE* fd, TIFF* tif, uint32 w, uint32 h)
 
 	use_rawdata = TRUE;
 	switch (compression) {
-	case COMPRESSION_NONE:		/* 1: uncompressed */
+	case COMPRESSION_NONE:	/* 1: uncompressed */
 		break;
 	case COMPRESSION_CCITTRLE:	/* 2: CCITT modified Huffman RLE */
 	case COMPRESSION_CCITTRLEW:	/* 32771: #1 w/ word alignment */
@@ -763,12 +723,12 @@ PS_Lvl2ImageDict(FILE* fd, TIFF* tif, uint32 w, uint32 h)
 		}
 		fputs(" /LZWDecode filter", fd);
 		break;
-	case COMPRESSION_PACKBITS:	/* 32773: Macintosh RLE */
+	case COMPRESSION_PACKBITS:		/* 32773: Macintosh RLE */
 		fputs(" /RunLengthDecode filter", fd);
 		use_rawdata = TRUE;
 	    break;
-	case COMPRESSION_OJPEG:		/* 6: !6.0 JPEG */
-	case COMPRESSION_JPEG:		/* 7: %JPEG DCT compression */
+	case COMPRESSION_OJPEG:	/* 6: !6.0 JPEG */
+	case COMPRESSION_JPEG:	/* 7: %JPEG DCT compression */
 #ifdef notdef
 		/*
 		 * Code not tested yet
@@ -784,10 +744,6 @@ PS_Lvl2ImageDict(FILE* fd, TIFF* tif, uint32 w, uint32 h)
 	case COMPRESSION_PIXARFILM:	/* 32908: Pixar companded 10bit LZW */
 	case COMPRESSION_DEFLATE:	/* 32946: Deflate compression */
 	case COMPRESSION_JBIG:		/* 34661: ISO JBIG */
-		use_rawdata = FALSE;
-		break;
-	case COMPRESSION_SGILOG:	/* 34676: SGI LogL or LogLuv */
-	case COMPRESSION_SGILOG24:	/* 34677: SGI 24-bit LogLuv */
 		use_rawdata = FALSE;
 		break;
 	default:
@@ -1356,6 +1312,7 @@ Ascii85Put(unsigned char code, FILE* fd)
 					ascii85breaklen = 2*MAXLINE;
 				}
 			}
+			p += 4;
 		}
 		_TIFFmemcpy(ascii85buf, p, n);
 		ascii85count = n;
@@ -1391,7 +1348,6 @@ char* stuff[] = {
 " -s            generate PostScript for a single image",
 " -T            print pages for top edge binding",
 " -w #          assume printed page width is # inches (default 8.5)",
-" -z            enable printing in the deadzone (only for PostScript Level II)",
 NULL
 };
 

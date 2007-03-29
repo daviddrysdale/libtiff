@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/tools/RCS/tiffinfo.c,v 1.26 1996/01/10 19:35:39 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -51,9 +51,8 @@ main(int argc, char* argv[])
 	extern char* optarg;
 	long flags = 0;
 	uint32 diroff = 0;
-	int chopstrips = 0;		/* disable strip chopping */
 
-	while ((c = getopt(argc, argv, "f:o:cdDSjlmrsvwz0123456789")) != -1)
+	while ((c = getopt(argc, argv, "f:o:cdDSjlmrsvw0123456789")) != -1)
 		switch (c) {
 		case '0': case '1': case '2': case '3':
 		case '4': case '5': case '6': case '7':
@@ -97,9 +96,6 @@ main(int argc, char* argv[])
 		case 'w':
 			showwords = 1;
 			break;
-		case 'z':
-			chopstrips = 1;
-			break;
 		case '?':
 			usage();
 			/*NOTREACHED*/
@@ -110,7 +106,7 @@ main(int argc, char* argv[])
 	for (; optind < argc; optind++) {
 		if (multiplefiles)
 			printf("%s:\n", argv[optind]);
-		tif = TIFFOpen(argv[optind], chopstrips ? "rC" : "rc");
+		tif = TIFFOpen(argv[optind], "r");
 		if (tif != NULL) {
 			if (dirnum != -1) {
 				if (TIFFSetDirectory(tif, dirnum))
@@ -143,7 +139,6 @@ char* stuff[] = {
 " -r		read/display raw image data instead of decoded data",
 " -s		display strip offsets and byte counts",
 " -w		display raw data in words rather than bytes",
-" -z		enable strip chopping",
 " -#		set initial directory (first directory is # 0)",
 NULL
 };

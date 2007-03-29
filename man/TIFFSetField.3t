@@ -1,7 +1,7 @@
-.\" $Header$
+.\" $Header: /usr/people/sam/tiff/man/RCS/TIFFSetField.3t,v 1.15 1995/10/11 19:45:29 sam Rel $
 .\"
-.\" Copyright (c) 1988-1997 Sam Leffler
-.\" Copyright (c) 1991-1997 Silicon Graphics, Inc.
+.\" Copyright (c) 1988-1995 Sam Leffler
+.\" Copyright (c) 1991-1995 Silicon Graphics, Inc.
 .\"
 .\" Permission to use, copy, modify, distribute, and sell this software and 
 .\" its documentation for any purpose is hereby granted without fee, provided
@@ -23,7 +23,7 @@
 .\" OF THIS SOFTWARE.
 .\"
 .if n .po 0
-.TH TIFFSetField 3T "August 28, 1997"
+.TH TIFFSetField 3T "October 15, 1995"
 .SH NAME
 TIFFSetField \- set the value(s) of a tag in a
 .SM TIFF
@@ -49,11 +49,8 @@ file
 is a parameter that is used to control the operation of the
 .SM TIFF
 library but whose value is not read or written to the underlying file.)
-To set the value of a field
-the file must have been previously opened for writing with
-.IR TIFFOpen (3T);
-pseudo-tags can be set whether the file was opened for reading
-or writing.
+The file must have been previously opened for writing with
+.IR TIFFOpen (3T).
 The field is identified by
 .IR tag ,
 one of the values defined in the include file
@@ -92,9 +89,6 @@ is an unsigned 16-bit value;
 is an unsigned 32-bit value;
 .I uint16*
 is an array of unsigned 16-bit values.
-.I void*
-is an array of data values of unspecified type.
-
 Consult the
 .SM TIFF
 specification for information on the meaning of each tag.
@@ -142,7 +136,7 @@ TIFFTAG_PAGENUMBER	2	uint16
 TIFFTAG_PHOTOMETRIC	1	uint16
 TIFFTAG_PLANARCONFIG	1	uint16	\(dg
 TIFFTAG_PREDICTOR	1	uint16	\(dg
-TIFFTAG_PRIMARYCHROMATICITIES	1	float*	6-entry array
+TIFFTAG_PRIMARYCHROMATICITIES	1	float	6-entry array
 TIFFTAG_REFERENCEBLACKWHITE	1	float*	\(dg 2*SamplesPerPixel array
 TIFFTAG_RESOLUTIONUNIT	1	uint16
 TIFFTAG_ROWSPERSTRIP	1	uint32	\(dg must be > 0
@@ -151,7 +145,6 @@ TIFFTAG_SAMPLESPERPIXEL	1	uint16	\(dg value must be <= 4
 TIFFTAG_SMAXSAMPLEVALUE	1	double
 TIFFTAG_SMINSAMPLEVALUE	1	double
 TIFFTAG_SOFTWARE	1	char*
-TIFFTAG_STONITS	1	double	\(dg
 TIFFTAG_SUBFILETYPE	1	uint32
 TIFFTAG_SUBIFD	2	uint16,uint32*	count & offsets array
 TIFFTAG_TARGETPRINTER	1	char*
@@ -162,29 +155,21 @@ TIFFTAG_TILEWIDTH	1	uint32	\(dg must be a multiple of 8
 TIFFTAG_TRANSFERFUNCTION	1 or 3 \(dd	uint16*	1<<BitsPerSample entry arrays
 TIFFTAG_XPOSITION	1	float
 TIFFTAG_XRESOLUTION	1	float
-TIFFTAG_WHITEPOINT	1	float*	2-entry array
+TIFFTAG_WHITEPOINT	1	float	2-entry array
 TIFFTAG_YCBCRCOEFFICIENTS	1	float*	\(dg 3-entry array
 TIFFTAG_YCBCRPOSITIONING	1	uint16	\(dg
 TIFFTAG_YCBCRSAMPLING	2	uint16	\(dg
 TIFFTAG_YPOSITION	1	float
 TIFFTAG_YRESOLUTION	1	float
-TIFFTAG_ICCPROFILE	2	uint32,void*	count, profile data*
 .fi
 .sp 5p
 \(dg Tag may not have its values changed once data is written.
 .br
-.fi
 \(dd
 If
 .I SamplesPerPixel
 is one, then a single array is passed; otherwise three arrays should be
 passed.
-.fi
-* The contents of this field are quite complex.  See 
-.IR "The ICC Profile Format Specification" ,
-Annex B.3 "Embedding ICC Profiles in TIFF Files"
-(available at http://www.color.org) for an explanation.
-.br
 .SH "RETURN VALUES"
 1 is returned if the tag is defined in the current
 directory; otherwise a 0 is returned.

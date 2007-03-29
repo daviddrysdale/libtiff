@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_read.c,v 1.70 1996/01/10 19:33:11 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -109,7 +109,7 @@ TIFFReadScanline(TIFF* tif, tdata_t buf, uint32 row, tsample_t sample)
 			(*tif->tif_postdecode)(tif, (tidata_t) buf,
 			    tif->tif_scanlinesize);
 	}
-	return (e > 0 ? 1 : -1);
+	return (e ? 1 : -1);
 }
 
 /*
@@ -157,8 +157,6 @@ TIFFReadRawStrip1(TIFF* tif,
 	TIFFDirectory *td = &tif->tif_dir;
 
 	if (!isMapped(tif)) {
-		tsize_t cc;
-
 		if (!SeekOK(tif, td->td_stripoffset[strip])) {
 			TIFFError(module,
 			    "%s: Seek error at scanline %lu, strip %lu",
@@ -166,25 +164,17 @@ TIFFReadRawStrip1(TIFF* tif,
 			    (u_long) tif->tif_row, (u_long) strip);
 			return (-1);
 		}
-		cc = TIFFReadFile(tif, buf, size);
-		if (cc != size) {
-			TIFFError(module,
-		"%s: Read error at scanline %lu; got %lu bytes, expected %lu",
-			    tif->tif_name,
-			    (u_long) tif->tif_row,
-			    (u_long) cc,
-			    (u_long) size);
+		if (!ReadOK(tif, buf, size)) {
+			TIFFError(module, "%s: Read error at scanline %lu",
+			    tif->tif_name, (u_long) tif->tif_row);
 			return (-1);
 		}
 	} else {
 		if (td->td_stripoffset[strip] + size > tif->tif_size) {
 			TIFFError(module,
-    "%s: Read error at scanline %lu, strip %lu; got %lu bytes, expected %lu",
+			    "%s: Seek error at scanline %lu, strip %lu",
 			    tif->tif_name,
-			    (u_long) tif->tif_row,
-			    (u_long) strip,
-			    (u_long) tif->tif_size - td->td_stripoffset[strip],
-			    (u_long) size);
+			    (u_long) tif->tif_row, (u_long) strip);
 			return (-1);
 		}
 		_TIFFmemcpy(buf, tif->tif_base + td->td_stripoffset[strip], size);
@@ -261,12 +251,8 @@ TIFFFillStrip(TIFF* tif, tstrip_t strip)
 			 * This error message might seem strange, but it's
 			 * what would happen if a read were done instead.
 			 */
-			TIFFError(module,
-		    "%s: Read error on strip %lu; got %lu bytes, expected %lu",
-			    tif->tif_name,
-			    (u_long) strip,
-			    (u_long) tif->tif_size - td->td_stripoffset[strip],
-			    (u_long) bytecount);
+			TIFFError(module, "%s: Read error on strip %lu",
+			    tif->tif_name, (u_long) strip);
 			tif->tif_curstrip = NOSTRIP;
 			return (0);
 		}
@@ -356,8 +342,6 @@ TIFFReadRawTile1(TIFF* tif,
 	TIFFDirectory *td = &tif->tif_dir;
 
 	if (!isMapped(tif)) {
-		tsize_t cc;
-
 		if (!SeekOK(tif, td->td_stripoffset[tile])) {
 			TIFFError(module,
 			    "%s: Seek error at row %ld, col %ld, tile %ld",
@@ -367,27 +351,21 @@ TIFFReadRawTile1(TIFF* tif,
 			    (long) tile);
 			return ((tsize_t) -1);
 		}
-		cc = TIFFReadFile(tif, buf, size);
-		if (cc != size) {
-			TIFFError(module,
-	    "%s: Read error at row %ld, col %ld; got %lu bytes, expected %lu",
+		if (!ReadOK(tif, buf, size)) {
+			TIFFError(module, "%s: Read error at row %ld, col %ld",
 			    tif->tif_name,
 			    (long) tif->tif_row,
-			    (long) tif->tif_col,
-			    (u_long) cc,
-			    (u_long) size);
+			    (long) tif->tif_col);
 			return ((tsize_t) -1);
 		}
 	} else {
 		if (td->td_stripoffset[tile] + size > tif->tif_size) {
 			TIFFError(module,
-    "%s: Read error at row %ld, col %ld, tile %ld; got %lu bytes, expected %lu",
+			    "%s: Seek error at row %ld, col %ld, tile %ld",
 			    tif->tif_name,
 			    (long) tif->tif_row,
 			    (long) tif->tif_col,
-			    (long) tile,
-			    (u_long) tif->tif_size - td->td_stripoffset[tile],
-			    (u_long) size);
+			    (long) tile);
 			return ((tsize_t) -1);
 		}
 		_TIFFmemcpy(buf, tif->tif_base + td->td_stripoffset[tile], size);

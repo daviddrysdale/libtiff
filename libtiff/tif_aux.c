@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_aux.c,v 1.32 1996/01/10 19:32:55 sam Rel $ */
 
 /*
- * Copyright (c) 1991-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1991-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -123,9 +123,6 @@ TIFFVGetFieldDefaulted(TIFF* tif, ttag_t tag, va_list ap)
 		return (1);
 	case TIFFTAG_INKSET:
 		*va_arg(ap, uint16 *) = td->td_inkset;
-		return (1);
-	case TIFFTAG_NUMBEROFINKS:
-		*va_arg(ap, uint16 *) = td->td_ninks;
 		return (1);
 #endif
 	case TIFFTAG_EXTRASAMPLES:

@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_codec.c,v 1.9 1996/04/05 17:36:53 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -66,9 +66,6 @@ static	int NotConfigured(TIFF*, int);
 #ifndef	PIXARLOG_SUPPORT
 #define	TIFFInitPixarLog	NotConfigured
 #endif
-#ifndef LOGLUV_SUPPORT
-#define TIFFInitSGILog		NotConfigured
-#endif
 
 /*
  * Compression schemes statically built into the library.
@@ -92,9 +89,7 @@ TIFFCodec _TIFFBuiltinCODECS[] = {
     { "ISO JBIG",	COMPRESSION_JBIG,	TIFFInitJBIG },
     { "Deflate",	COMPRESSION_DEFLATE,	TIFFInitZIP },
     { "PixarLog",	COMPRESSION_PIXARLOG,	TIFFInitPixarLog },
-    { "SGILog",		COMPRESSION_SGILOG,	TIFFInitSGILog },
-    { "SGILog24",	COMPRESSION_SGILOG24,	TIFFInitSGILog },
-    { NULL }
+    { NULL },
 };
 
 static int

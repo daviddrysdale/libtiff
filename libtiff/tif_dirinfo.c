@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_dirinfo.c,v 1.37 1996/01/10 19:32:58 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -166,9 +166,7 @@ static const TIFFFieldInfo tiffFieldInfo[] = {
     { TIFFTAG_INKSET,		 1, 1, TIFF_SHORT,	FIELD_INKSET,
       FALSE,	FALSE,	"InkSet" },
     { TIFFTAG_INKNAMES,		-1,-1, TIFF_ASCII,	FIELD_INKNAMES,
-      TRUE,	TRUE,	"InkNames" },
-    { TIFFTAG_NUMBEROFINKS,	 1, 1, TIFF_SHORT,	FIELD_NUMBEROFINKS,
-      TRUE,	FALSE,	"NumberOfInks" },
+      TRUE,	FALSE,	"InkNames" },
     { TIFFTAG_DOTRANGE,		 2, 2, TIFF_SHORT,	FIELD_DOTRANGE,
       FALSE,	FALSE,	"DotRange" },
     { TIFFTAG_DOTRANGE,		 2, 2, TIFF_BYTE,	FIELD_DOTRANGE,
@@ -216,27 +214,6 @@ static const TIFFFieldInfo tiffFieldInfo[] = {
     { TIFFTAG_TILEDEPTH,	 1, 1, TIFF_SHORT,	FIELD_TILEDEPTH,
       FALSE,	FALSE,	"TileDepth" },
 /* end SGI tags */
-#ifdef IPTC_SUPPORT
-#ifdef PHOTOSHOP_SUPPORT
-    { TIFFTAG_RICHTIFFIPTC, -1,-1, TIFF_LONG,   FIELD_RICHTIFFIPTC, 
-      FALSE,    TRUE,   "RichTIFFIPTC" },
-#else
-    { TIFFTAG_RICHTIFFIPTC, -1,-3, TIFF_UNDEFINED, FIELD_RICHTIFFIPTC, 
-      FALSE,    TRUE,   "RichTIFFIPTC" },
-#endif
-#endif
-#ifdef PHOTOSHOP_SUPPORT
-    { TIFFTAG_PHOTOSHOP,    -1,-3, TIFF_UNDEFINED, FIELD_PHOTOSHOP, 
-      FALSE,    TRUE,   "Photoshop" },
-    { TIFFTAG_PHOTOSHOP,    -1,-1, TIFF_BYTE,   FIELD_PHOTOSHOP, 
-      FALSE,    TRUE,   "Photoshop" },
-#endif
-#ifdef ICC_SUPPORT
-    { TIFFTAG_ICCPROFILE,	-1,-3, TIFF_UNDEFINED,	FIELD_ICCPROFILE,
-      FALSE,	TRUE,	"ICC Profile" },
-#endif
-    { TIFFTAG_STONITS,		 1, 1, TIFF_DOUBLE,	FIELD_STONITS,
-      FALSE,	FALSE,	"StoNits" },
 };
 #define	N(a)	(sizeof (a) / sizeof (a[0]))
 
@@ -255,11 +232,8 @@ tagCompare(const void* a, const void* b)
 {
 	const TIFFFieldInfo* ta = *(const TIFFFieldInfo**) a;
 	const TIFFFieldInfo* tb = *(const TIFFFieldInfo**) b;
-	/* NB: be careful of return values for 16-bit platforms */
-	if (ta->field_tag != tb->field_tag)
-		return (ta->field_tag < tb->field_tag ? -1 : 1);
-	else
-		return (tb->field_type < ta->field_type ? -1 : 1);
+ 	int c = ta->field_tag - tb->field_tag;
+	return (c != 0 ? c : tb->field_type - ta->field_type);
 }
 
 void
@@ -297,9 +271,9 @@ _TIFFPrintFieldInfo(TIFF* tif, FILE* fd)
 	fprintf(fd, "%s: \n", tif->tif_name);
 	for (i = 0; i < tif->tif_nfields; i++) {
 		const TIFFFieldInfo* fip = tif->tif_fieldinfo[i];
-		fprintf(fd, "field[%2d] %5lu, %2d, %2d, %d, %2d, %5s, %5s, %s\n"
+		fprintf(fd, "field[%2d] %5u, %2d, %2d, %d, %2d, %5s, %5s, %s\n"
 			, i
-			, (unsigned long) fip->field_tag
+			, fip->field_tag
 			, fip->field_readcount, fip->field_writecount
 			, fip->field_type
 			, fip->field_bit

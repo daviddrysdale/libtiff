@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_zip.c,v 1.8 1996/03/07 17:00:23 sam Rel $ */
 
 /*
- * Copyright (c) 1995-1997 Sam Leffler
- * Copyright (c) 1995-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1995-1996 Sam Leffler
+ * Copyright (c) 1995-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -88,7 +88,7 @@ static int
 ZIPSetupDecode(TIFF* tif)
 {
 	ZIPState* sp = DecoderState(tif);
-	static const char module[] = "ZIPSetupDecode";
+	static char module[] = "ZIPSetupDecode";
 
 	assert(sp != NULL);
 	if (inflateInit(&sp->stream) != Z_OK) {
@@ -119,7 +119,7 @@ static int
 ZIPDecode(TIFF* tif, tidata_t op, tsize_t occ, tsample_t s)
 {
 	ZIPState* sp = DecoderState(tif);
-	static const char module[] = "ZIPDecode";
+	static char module[] = "ZIPDecode";
 
 	(void) s;
 	assert(sp != NULL);
@@ -156,7 +156,7 @@ static int
 ZIPSetupEncode(TIFF* tif)
 {
 	ZIPState* sp = EncoderState(tif);
-	static const char module[] = "ZIPSetupEncode";
+	static char module[] = "ZIPSetupEncode";
 
 	assert(sp != NULL);
 	if (deflateInit(&sp->stream, sp->zipquality) != Z_OK) {
@@ -190,7 +190,7 @@ static int
 ZIPEncode(TIFF* tif, tidata_t bp, tsize_t cc, tsample_t s)
 {
 	ZIPState *sp = EncoderState(tif);
-	static const char module[] = "ZIPEncode";
+	static char module[] = "ZIPEncode";
 
 	(void) s;
 	sp->stream.next_in = bp;
@@ -219,7 +219,7 @@ static int
 ZIPPostEncode(TIFF* tif)
 {
 	ZIPState *sp = EncoderState(tif);
-	static const char module[] = "ZIPPostEncode";
+	static char module[] = "ZIPPostEncode";
 	int state;
 
 	sp->stream.avail_in = 0;
@@ -250,13 +250,10 @@ ZIPCleanup(TIFF* tif)
 {
 	ZIPState* sp = ZState(tif);
 	if (sp) {
-		if (sp->state&ZSTATE_INIT) {
-			/* NB: avoid problems in the library */
-			if (tif->tif_mode == O_RDONLY)
-				inflateEnd(&sp->stream);
-			else
-				deflateEnd(&sp->stream);
-		}
+		if (tif->tif_mode == O_RDONLY)
+			inflateEnd(&sp->stream);
+		else
+			deflateEnd(&sp->stream);
 		_TIFFfree(sp);
 		tif->tif_data = NULL;
 	}
@@ -266,7 +263,7 @@ static int
 ZIPVSetField(TIFF* tif, ttag_t tag, va_list ap)
 {
 	ZIPState* sp = ZState(tif);
-	static const char module[] = "ZIPVSetField";
+	static char module[] = "ZIPVSetField";
 
 	switch (tag) {
 	case TIFFTAG_ZIPQUALITY:

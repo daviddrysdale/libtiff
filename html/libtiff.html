@@ -4,12 +4,26 @@
 Using The TIFF Library
 </TITLE>
 </HEAD>
-<BODY BGCOLOR=WHITE> 
-<FONT FACE="Arial, Helvetica, Sans">
+
 <H1>
 <IMG SRC=images/cat.gif WIDTH=113 HEIGHT=146 BORDER=2 ALIGN=left HSPACE=6>
 Using The TIFF Library
 </H1>
+
+
+<H5>
+This documentation is best viewed using a graphical browser that supports
+the latest HTML directives for formatting documents.  In particular,
+this document was authored
+for viewing with version 1.1 or newer of the
+<A HREF="http://home.mcom.com/comprod/products/navigator/index.html">Netscape Navigator</A>.
+</H5>
+
+<BR CLEAR=left>
+
+<PRE>
+
+</PRE>
 
 <P>
 <TT>libtiff</TT> is a set of C functions (a library) that support
@@ -216,7 +230,7 @@ main(int argc, char* argv[])
 {
     TIFF* tif = TIFFOpen(argv[1], "r");
     if (tif) {
-	int dircount = 0;
+	int dircount = 1;
 	do {
 	    dircount++;
 	} while (TIFFReadDirectory(tif));
@@ -290,7 +304,7 @@ for reading, or by setting the tag when writing.
 
 <P>
 Compression schemes are implemented by software modules termed <I>codecs</I>
-that implement decoder and encoder routines that hook into the
+that implements decoder and encoder routines that hook into the
 core library i/o support.
 Codecs other than those bundled with the library can be registered
 for use with the <TT>TIFFRegisterCODEC</TT> routine.
@@ -361,7 +375,7 @@ main(int argc, char* argv[])
 	npixels = w * h;
 	raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
 	if (raster != NULL) {
-	    if (TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+	    if (TIFFReadRGBAImage(tif, raster, w, h, 0)) {
 		...process raster data...
 	    }
 	    _TIFFfree(raster);
@@ -722,7 +736,10 @@ main()
 <P>
 <HR>
 
-Last updated: $Date$
+<ADDRESS>
+<A HREF="sam.html">Sam Leffler</A> / <A HREF="mailto:sam@engr.sgi.com">sam@engr.sgi.com</A>.
+Last updated: $Date: 1996/04/29 19:18:06 $
+</ADDRESS>
 
 </BODY>
 </HTML>

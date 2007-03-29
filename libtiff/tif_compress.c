@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_compress.c,v 1.51 1996/01/10 19:32:57 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -122,9 +122,11 @@ _TIFFNoPreCode(TIFF* tif, tsample_t s)
 static int _TIFFtrue(TIFF* tif) { (void) tif; return (1); }
 static void _TIFFvoid(TIFF* tif) { (void) tif; }
 
-void
-_TIFFSetDefaultCompressionState(TIFF* tif)
+int
+TIFFSetCompressionScheme(TIFF* tif, int scheme)
 {
+	const TIFFCodec *c = TIFFFindCODEC(scheme);
+
 	tif->tif_setupdecode = _TIFFtrue;
 	tif->tif_predecode = _TIFFNoPreCode;
 	tif->tif_decoderow = _TIFFNoRowDecode;
@@ -142,14 +144,6 @@ _TIFFSetDefaultCompressionState(TIFF* tif)
 	tif->tif_defstripsize = _TIFFDefaultStripSize;
 	tif->tif_deftilesize = _TIFFDefaultTileSize;
 	tif->tif_flags &= ~TIFF_NOBITREV;
-}
-
-int
-TIFFSetCompressionScheme(TIFF* tif, int scheme)
-{
-	const TIFFCodec *c = TIFFFindCODEC(scheme);
-
-	_TIFFSetDefaultCompressionState(tif);
 	/*
 	 * Don't treat an unknown compression scheme as an error.
 	 * This permits applications to open files with data that

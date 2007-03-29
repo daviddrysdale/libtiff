@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_lzw.c,v 1.70 1996/01/10 19:33:05 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -191,7 +191,7 @@ static int
 LZWSetupDecode(TIFF* tif)
 {
 	LZWDecodeState* sp = DecoderState(tif);
-	static const char module[] = " LZWSetupDecode";
+	static char module[] = " LZWSetupDecode";
 	int code;
 
 	assert(sp != NULL);
@@ -644,7 +644,7 @@ static int
 LZWSetupEncode(TIFF* tif)
 {
 	LZWEncodeState* sp = EncoderState(tif);
-	static const char module[] = "LZWSetupEncode";
+	static char module[] = "LZWSetupEncode";
 
 	assert(sp != NULL);
 	sp->enc_hashtab = (hash_t*) _TIFFmalloc(HSIZE*sizeof (hash_t));
@@ -782,6 +782,10 @@ LZWEncode(TIFF* tif, tidata_t bp, tsize_t cc, tsample_t s)
 			if (h == 0)
 				disp = 1;
 			do {
+#ifndef _WINDOWS
+				if ((hp -= disp) < sp->enc_hashtab)
+					hp += HSIZE;
+#else
 				/*
 				 * Avoid pointer arithmetic 'cuz of
 				 * wraparound problems with segments.
@@ -789,6 +793,7 @@ LZWEncode(TIFF* tif, tidata_t bp, tsize_t cc, tsample_t s)
 				if ((h -= disp) < 0)
 					h += HSIZE;
 				hp = &sp->enc_hashtab[h];
+#endif
 				if (hp->hash == fcode) {
 					ent = hp->code;
 					goto hit;

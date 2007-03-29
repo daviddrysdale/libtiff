@@ -1,11 +1,11 @@
-#	$Header$
+#	$Header: /usr/people/sam/tiff/html/RCS/Makefile.in,v 1.10 1996/04/29 19:51:20 sam Rel $
 #
 # @WARNING@
 #
 # Tag Image File Format Library Manual Pages
 #
-# Copyright (c) 1991-1997 Sam Leffler
-# Copyright (c) 1991-1997 Silicon Graphics, Inc.
+# Copyright (c) 1991-1996 Sam Leffler
+# Copyright (c) 1991-1996 Silicon Graphics, Inc.
 # 
 # Permission to use, copy, modify, distribute, and sell this software and 
 # its documentation for any purpose is hereby granted without fee, provided
@@ -70,9 +70,6 @@ HTMLFILES=\
 	v3.4beta031.html	\
 	v3.4beta032.html	\
 	v3.4beta033.html	\
-	v3.4beta034.html	\
-	v3.4beta035.html	\
-	v3.4beta036.html	\
 	${NULL}
 IMAGES=\
 	images/back.gif		\
@@ -88,6 +85,7 @@ IMAGES=\
 	images/ring.gif		\
 	images/smallliz.jpg	\
 	images/strike.gif	\
+	images/strike.jpg	\
 	images/warning.gif	\
 	${NULL}
 TARGETS=
@@ -95,9 +93,9 @@ TARGETS=
 all:	${TARGETS}
 
 install: all
-	${INSTALL} -m 755 -dir -idb tiff.man.html ${HTML} ${HTML}/images
+	${INSTALL} -m 755 -dir -idb tiff.html.sw ${HTML} ${HTML}/images
 	for i in ${HTMLFILES} ${IMAGES}; do \
-	    ${INSTALL} -idb tiff.man.html -m 444 -F ${HTML} \
+	    ${INSTALL} -idb tiff.html.sw -m 444 -F ${HTML} \
 		-src ${SRCDIR}/$$i -O $$i; \
 	done
 

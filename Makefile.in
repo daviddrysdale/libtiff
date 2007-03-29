@@ -1,12 +1,12 @@
 #! smake
-#	$Header$
+#	$Header: /usr/people/sam/tiff/RCS/Makefile.in,v 1.51 1996/04/29 19:51:20 sam Rel $
 #
 # @WARNING@
 #
 # Tag Image File Format Library
 #
-# Copyright (c) 1988-1997 Sam Leffler
-# Copyright (c) 1991-1997 Silicon Graphics, Inc.
+# Copyright (c) 1988-1996 Sam Leffler
+# Copyright (c) 1991-1996 Silicon Graphics, Inc.
 # 
 # Permission to use, copy, modify, distribute, and sell this software and 
 # its documentation for any purpose is hereby granted without fee, provided
@@ -35,13 +35,13 @@ SRCDIR	= @SRCDIR@
 # DATE:		@DATE@
 # TARGET:	@TARGET@
 # CCOMPILER:	@CCOMPILER@
+# CXXCOMPILER:	@CXXCOMPILER@
 #
 @SETMAKE@
 SHELL	= @SCRIPT_SH@
 NULL	=
 ECHO	= echo
 GENDIST	= ${TOOLROOT}/usr/sbin/gendist
-INSTALL	= @INSTALL@
 
 all default:
 	@if [ "@PORT@" = yes ]; then \
@@ -57,11 +57,6 @@ install:
 	@${ECHO} "= "libtiff; cd libtiff; ${MAKE} install
 	@${ECHO} "= "tools; cd tools; ${MAKE} install
 	@${ECHO} "= "man; cd man; ${MAKE} install
-	@if [ "@HTML@" = yes ]; then \
-	    ${ECHO} "= "html; cd html; ${MAKE} install; \
-	else \
-	    true; \
-	fi
 
 clean:
 	@if [ "@PORT@" = yes ]; then \
@@ -81,22 +76,14 @@ clobber distclean: clean
 	rm -f tools/Makefile
 	rm -f man/Makefile
 	rm -f port/Makefile port/install.sh
-	rm -f html/Makefile
 
 #
 # The folllowing rule creates a binary distribution for IRIX.
 #
-installLink::
-	if [ @DIR_LIB@ != /usr/lib ]; then				\
-	    ${INSTALL} -idb tiff.sw.tools -F /usr/lib			\
-		-lns @DIR_LIB@/libtiff.@DSOSUF@ -O libtiff.@DSOSUF@;	\
-	else								\
-	    true;							\
-	fi
 product::
 	test -d dist || mkdir dist
 	rm -f dist/rawidb
-	SRC=`pwd` RAWIDB=`pwd`/dist/rawidb ${MAKE} install installLink
+	SRC=`pwd` RAWIDB=`pwd`/dist/rawidb ${MAKE} install
 	rm -f dist/idb
 	sort -u +4 dist/rawidb > dist/idb
 	${GENDIST} -v -dist dist -idb dist/idb \
@@ -131,7 +118,6 @@ TIFFFILES=\
 	    libtiff/tiffconf.h			\
 	    libtiff/tiffio.h			\
 	    libtiff/tiffiop.h			\
-	    libtiff/uvcode.h			\
 	    libtiff/mkg3states.c		\
 	    libtiff/mkspans.c			\
 	    libtiff/mkversion.c			\
@@ -154,7 +140,6 @@ TIFFFILES=\
 	    libtiff/tif_flush.c			\
 	    libtiff/tif_getimage.c		\
 	    libtiff/tif_jpeg.c			\
-	    libtiff/tif_luv.c			\
 	    libtiff/tif_lzw.c			\
 	    libtiff/tif_msdos.c			\
 	    libtiff/tif_next.c			\
@@ -274,9 +259,6 @@ TIFFFILES=\
 	    html/misc.html			\
 	    html/support.html			\
 	    html/tools.html			\
-	    html/v3.4beta036.html		\
-	    html/v3.4beta035.html		\
-	    html/v3.4beta034.html		\
 	    html/v3.4beta033.html		\
 	    html/v3.4beta032.html		\
 	    html/v3.4beta031.html		\
@@ -317,69 +299,22 @@ CONTRIBFILES=\
 		contrib/dbs/xtiff/patchlevel.h	\
 		contrib/dbs/xtiff/xtiff.c	\
 		contrib/dbs/xtiff/xtifficon.h	\
-	contrib/ras/README			\
-	    contrib/ras/ras2tif.c		\
-	    contrib/ras/tif2ras.c		\
+	contrib/ras/ras2tif.c			\
+	contrib/ras/tif2ras.c			\
 	contrib/vms/libtiff/makevms.com		\
 	    contrib/vms/libtiff/tiff.opt	\
 	    contrib/vms/libtiff/tiffshraxp.opt	\
 	    contrib/vms/libtiff/tiffshrvax.opt	\
 	    contrib/vms/libtiff/tiffvec.mar	\
 	    contrib/vms/tools/makevms.com	\
-	contrib/tags/README			\
-	    contrib/tags/Makefile.gcc		\
-	    contrib/tags/Makefile.mpw		\
-	    contrib/tags/listtif.c		\
-	    contrib/tags/maketif.c		\
-	    contrib/tags/xtif_dir.c		\
-	    contrib/tags/xtiffio.h		\
-	    contrib/tags/xtiffiop.h		\
-	contrib/mac-mpw/README			\
-	    contrib/mac-mpw/BUILD.mpw		\
-	    contrib/mac-mpw/libtiff.make	\
-	    contrib/mac-mpw/mactrans.c		\
-	    contrib/mac-mpw/port.make		\
-	    contrib/mac-mpw/tools.make		\
-	    contrib/mac-mpw/top.make		\
-	contrib/acorn/ReadMe			\
-	    contrib/acorn/Makefile		\
-	    contrib/acorn/SetVars		\
-	    contrib/acorn/cleanlib		\
-	    contrib/acorn/convert		\
-	    contrib/acorn/install		\
-	contrib/win32/README			\
-	    contrib/win32/dllshell.c		\
-	    contrib/win32/libtiff.def		\
-	contrib/win95/README			\
-	    contrib/win95/Makefile.w95		\
-	    contrib/win95/tiff2dib.c		\
-	contrib/winnt/README			\
-	    contrib/winnt/README.console	\
-	    contrib/winnt/fax3sm.c		\
-	    contrib/winnt/libtiff.def		\
-	    contrib/winnt/libtiff.mak		\
-	    contrib/winnt/libtiff.vcp		\
-	    contrib/winnt/version.h		\
-	contrib/mac-cw/README			\
-	    contrib/mac-cw/Makefile.script	\
-	    contrib/mac-cw/mac_main.c		\
-	    contrib/mac-cw/mac_main.h		\
-	    contrib/mac-cw/metrowerks.note	\
-	    contrib/mac-cw/mkg3_main.c		\
-	    contrib/mac-cw/version.h		\
-	contrib/dosdjgpp/README			\
-	    contrib/dosdjgpp/Makefile.lib	\
-	    contrib/dosdjgpp/Makefile.tools	\
-	    contrib/dosdjgpp/Makefile.top	\
-	    contrib/dosdjgpp/conf.bat		\
-	    contrib/dosdjgpp/port.h		\
-	contrib/mfs/README			\
-	    contrib/mfs/mfs_file.c		\
-	contrib/pds/README			\
-	    contrib/pds/tif_imageiter.c		\
-	    contrib/pds/tif_imageiter.h		\
-	    contrib/pds/tif_pdsdirread.c	\
-	    contrib/pds/tif_pdsdirwrite.c	\
+	contrib/tags				\
+	contrib/mac-mpw				\
+	contrib/acorn				\
+	contrib/win32				\
+	contrib/win95				\
+	contrib/winnt				\
+	contrib/mac-cw				\
+	contrib/dosdjgpp			\
 	${NULL}
 DISTFILES=\
 	${TIFFFILES}				\
@@ -411,7 +346,7 @@ alpha:
 
 # stamp relevant files according to current alpha
 alpha.stamp:
-	VERSION="Alpha@DIST_ALPHA@";					\
+	VERSION=`awk '{print "Alpha" $$3}' ${SRCDIR}/dist/tiff.alpha`;\
 	NOW=`date`;							\
 	for i in ${TIFFFILES}; do					\
 	    REV=`rlog -h -d"$$NOW" ${SRCDIR}/$$i|fgrep 'head:'|awk '{print $$2}'`;\
@@ -419,10 +354,8 @@ alpha.stamp:
 	done
 
 purge-old-alphas:
-	VERSIONS=`awk 'BEGIN {						\
-		for (i=1; i<=@DIST_ALPHA@; i++) printf " -nAlpha%03d",i;\
-		exit							\
-	    }'`;							\
+	VERSIONS=`awk '{for (i=1; i<=$$3; i++) printf " -nAlpha%03d",i}'\
+	    ${SRCDIR}/dist/tiff.alpha`;					\
 	for i in ${TIFFFILES}; do					\
 	    echo rcs $$VERSIONS ${SRCDIR}/$$i;				\
 	    rcs $$VERSIONS ${SRCDIR}/$$i && co ${SRCDIR}/$$i;		\
@@ -435,7 +368,7 @@ alphadiff:
 
 # create alpha distribution archive
 alpha.tar:
-	VERSION="@VERSION@";						\
+	VERSION="v`cat ${SRCDIR}/VERSION``awk '{print $$3}' ${SRCDIR}/dist/tiff.alpha`";	\
 	rm -f tiff-$$VERSION $$VERSION $$VERSION-tar;			\
 	ln -s ${SRCDIR} tiff-$$VERSION;					\
 	(for i in ${DISTFILES}; do					\
@@ -455,15 +388,16 @@ release:
 	${MAKE} release.tar
 
 release.stamp:
+	VERSION="Release`sed 's/\./_/g' ${SRCDIR}/VERSION`";		\
 	NOW=`date`;							\
 	for i in ${TIFFFILES}; do					\
 	    REV=`rlog -h -d"$$NOW" ${SRCDIR}/$$i|fgrep 'head:'|awk '{print $$2}'`;\
-	    rcs "-NRelease@DIST_MAJOR@_@DIST_MINOR@_@DIST_TYPE@:$$REV" "-sRel:$$REV" ${SRCDIR}/$$i && co -sRel ${SRCDIR}/$$i;	\
+	    rcs "-N$$VERSION:$$REV" "-sRel:$$REV" ${SRCDIR}/$$i && co -sRel ${SRCDIR}/$$i;	\
 	done
 
 # create release distribution archive
 release.tar:
-	VERSION="@VERSION@";						\
+	VERSION=v`cat ${SRCDIR}/VERSION`;				\
 	rm -f tiff-$$VERSION $$VERSION $$VERSION-tar;			\
 	ln -s ${SRCDIR} tiff-$$VERSION;					\
 	(for i in ${DISTFILES}; do					\

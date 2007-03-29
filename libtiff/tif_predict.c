@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_predict.c,v 1.4 1996/01/10 19:33:09 sam Rel $ */
 
 /*
- * Copyright (c) 1988-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -155,6 +155,13 @@ PredictorSetupEncode(TIFF* tif)
     case 1:  op;		\
     case 0:  ;			\
     }
+#define XREPEAT4(n, op)		\
+    switch (n) {		\
+    default: { int i; for (i = n-4; i > 0; i--) { op; } } \
+    case 2:  op;		\
+    case 1:  op;		\
+    case 0:  ;			\
+    }
 
 static void
 horAcc8(TIFF* tif, tidata_t cp0, tsize_t cc)
@@ -192,7 +199,7 @@ horAcc8(TIFF* tif, tidata_t cp0, tsize_t cc)
 			} while ((int32) cc > 0);
 		} else  {
 			do {
-				REPEAT4(stride, cp[stride] += *cp; cp++)
+				XREPEAT4(stride, cp[stride] += *cp; cp++)
 				cc -= stride;
 			} while ((int32) cc > 0);
 		}

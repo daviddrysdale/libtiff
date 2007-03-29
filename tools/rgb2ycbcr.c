@@ -1,8 +1,8 @@
-/* $Header$ */
+/* $Header: /usr/people/sam/tiff/tools/RCS/rgb2ycbcr.c,v 1.27 1996/01/10 19:35:31 sam Rel $ */
 
 /*
- * Copyright (c) 1991-1997 Sam Leffler
- * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+ * Copyright (c) 1991-1996 Sam Leffler
+ * Copyright (c) 1991-1996 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,9 +34,7 @@
 #define	CopyField(tag, v) \
     if (TIFFGetField(in, tag, &v)) TIFFSetField(out, tag, v)
 
-#ifndef howmany
 #define	howmany(x, y)	(((x)+((y)-1))/(y))
-#endif
 #define	roundup(x, y)	(howmany(x,y)*((uint32)(y)))
 
 #define	LumaRed		ycbcrCoeffs[0]

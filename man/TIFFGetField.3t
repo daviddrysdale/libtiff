@@ -1,7 +1,7 @@
-.\" $Header$
+.\" $Header: /usr/people/sam/tiff/man/RCS/TIFFGetField.3t,v 1.16 1995/10/11 19:45:29 sam Rel $
 .\"
-.\" Copyright (c) 1988-1997 Sam Leffler
-.\" Copyright (c) 1991-1997 Silicon Graphics, Inc.
+.\" Copyright (c) 1988-1995 Sam Leffler
+.\" Copyright (c) 1991-1995 Silicon Graphics, Inc.
 .\"
 .\" Permission to use, copy, modify, distribute, and sell this software and 
 .\" its documentation for any purpose is hereby granted without fee, provided
@@ -23,7 +23,7 @@
 .\" OF THIS SOFTWARE.
 .\"
 .if n .po 0
-.TH TIFFGetField 3T "August 22, 1997"
+.TH TIFFGetField 3T "October 15, 1995"
 .SH NAME
 TIFFGetField, TIFFVGetField \- get the value(s) of a tag in an open
 .SM TIFF
@@ -159,7 +159,6 @@ TIFFTAG_SAMPLESPERPIXEL	1	uint16*
 TIFFTAG_SMAXSAMPLEVALUE	1	double*
 TIFFTAG_SMINSAMPLEVALUE	1	double*
 TIFFTAG_SOFTWARE	1	char**
-TIFFTAG_STONITS	1	double**
 TIFFTAG_STRIPBYTECOUNTS	1	uint32**
 TIFFTAG_STRIPOFFSETS	1	uint32**
 TIFFTAG_SUBFILETYPE	1	uint32*
@@ -180,17 +179,11 @@ TIFFTAG_YCBCRPOSITIONING	1	uint16*
 TIFFTAG_YCBCRSUBSAMPLING	2	uint16*
 TIFFTAG_YPOSITION	1	float*
 TIFFTAG_YRESOLUTION	1	float*
-TIFFTAG_ICCPROFILE	2	uint32*,void**	count, profile data\(dd
 .fi
 \(dg If
 .I SamplesPerPixel
 is one, then a single array is returned; otherwise three arrays are
 returned.
-.fi
-\(dd The contents of this field are quite complex.  See 
-.IR "The ICC Profile Format Specification" ,
-Annex B.3 "Embedding ICC Profiles in TIFF Files"
-(available at http://www.color.org) for an explanation.
 .SH "RETURN VALUES"
 1 is returned if the tag is defined in the current
 directory; otherwise a 0 is returned.
