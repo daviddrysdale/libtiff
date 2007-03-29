@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/rgb2ycbcr.c,v 1.4 2000/10/19 13:23:49 warmerda Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/rgb2ycbcr.c,v 1.6 2003/03/12 14:05:06 dron Exp $ */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler
@@ -53,7 +53,7 @@ float	ycbcrCoeffs[3] = { .299, .587, .114 };
 float	refBlackWhite[6] = { 0., 255., 128., 255., 128., 255. };
 
 static	int tiffcvt(TIFF* in, TIFF* out);
-static	void usage(void);
+static	void usage(int code);
 static	void setupLumaTables(void);
 
 int
@@ -75,8 +75,10 @@ main(int argc, char* argv[])
 			    compression = COMPRESSION_LZW;
 			else if (streq(optarg, "jpeg"))
 			    compression = COMPRESSION_JPEG;
+			else if (streq(optarg, "zip"))
+			    compression = COMPRESSION_ADOBE_DEFLATE;
 			else
-			    usage();
+			    usage(-1);
 			break;
 		case 'h':
 			horizSubSampling = atoi(optarg);
@@ -96,11 +98,11 @@ main(int argc, char* argv[])
 			refBlackWhite[5] = 240.;
 			break;
 		case '?':
-			usage();
+			usage(0);
 			/*NOTREACHED*/
 		}
 	if (argc - optind < 2)
-		usage();
+		usage(-1);
 	out = TIFFOpen(argv[argc-1], "w");
 	if (out == NULL)
 		return (-2);
@@ -317,13 +319,14 @@ tiffcvt(TIFF* in, TIFF* out)
 	return (cvtRaster(out, raster, width, height));
 }
 
-static char* usageMsg[] = {
+char* stuff[] = {
     "usage: rgb2ycbcr [-c comp] [-r rows] [-h N] [-v N] input... output\n",
     "where comp is one of the following compression algorithms:\n",
     " jpeg\t\tJPEG encoding\n",
     " lzw\t\tLempel-Ziv & Welch encoding\n",
-    " (lzw no longer supported by default due to Unisys patent enforcement)", 
-    " packbits\tPackBits encoding\n",
+    " (lzw no longer supported by default due to Unisys patent enforcement)\n", 
+    " zip\t\tdeflate encoding\n",
+    " packbits\tPackBits encoding (default)\n",
     " none\t\tno compression\n",
     "and the other options are:\n",
     " -r\trows/strip\n",
@@ -333,10 +336,15 @@ static char* usageMsg[] = {
 };
 
 static void
-usage(void)
+usage(int code)
 {
+	char buf[BUFSIZ];
 	int i;
-	for (i = 0; usageMsg[i]; i++)
-		fprintf(stderr, "%s", usageMsg[i]);
-	exit(-1);
+
+	setbuf(stderr, buf);
+       
+ fprintf(stderr, "%s\n\n", TIFFGetVersion());
+	for (i = 0; stuff[i] != NULL; i++)
+		fprintf(stderr, "%s\n", stuff[i]);
+	exit(code);
 }

@@ -1,5 +1,5 @@
 #!/bin/sh
-#	$Header: /cvsroot/osrs/libtiff/configure,v 1.20 2001/11/15 17:21:05 warmerda Exp $
+#	$Header: /cvsroot/osrs/libtiff/configure,v 1.30 2003/05/20 15:42:10 dron Exp $
 #
 # Tag Image File Format (TIFF) Software
 #
@@ -152,7 +152,7 @@ do
     -target|--target)		ac_prev=TARGET;;
     -target=*|--target=*)	TARGET="$ac_optarg" ;;
     -version|--version)
-	echo "This is TIFF configure $Revision: 1.20 $"
+	echo "This is TIFF configure $Revision: 1.30 $"
 	exit 0
 	;;
     -help|--help)		usage; exit 0;;
@@ -946,6 +946,21 @@ EOF
 
 CheckForBigEndian()
 {
+    cat>t.c<<EOF
+#include <endian.h>
+#ifdef __BYTE_ORDER
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+little;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+big;
+#endif
+#endif
+EOF
+    capture cat t.c
+    runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep little >&5 && \
+       return 1
+    runMakeX t "t:; ${CCOMPILER} ${ENVOPTS} -E t.c" | grep big >&5 && \
+       return 0
     echo 'main() { int one = 1; char* cp = (char*)&one; exit(*cp!=0); }'>t.c
     capture cat t.c
     runMake t "t:; ${CCOMPILER} ${ENVOPTS} t.c" && ./a.out
@@ -1181,6 +1196,12 @@ if [ "$DSO" = auto ]; then
     *-openbsd*)
 	DSOSUF=so.${DIST_MAJOR}.${DIST_MINOR}
 	LIBCOPTS='-fpic'
+	DSOSUF=so.${DIST_MAJOR}${DIST_MINOR}.${DIST_POINT}
+	if [ "`uname -m`" = "sparc64" ]; then
+	  LIBCOPTS='-fPIC'
+	else
+	  LIBCOPTS='-fpic'
+	fi
 	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
 	case "$TARGET" in
 	   *-openbsd[01].* | *-openbsd2.[0-7] | *-openbsd2.[0-7].*)
@@ -1194,11 +1215,11 @@ if [ "$DSO" = auto ]; then
 	esac
 	;;
     *-darwin*)
-        DSOSUF=${DIST_MAJOR}.dylib
+        DSOSUF=dylib
         DSOSUF_VERSION=${DIST_MAJOR}.${DIST_MINOR}.${DIST_POINT}.dylib
         LIBCOPTS='-fno-common'
-          DSOLD=gcc
-        DSOOPTS='-dynamiclib -undefined suppress'
+        DSOLD="${CCOMPILER} ${ENVOPTS}"
+        DSOOPTS='-dynamiclib -undefined error'
         DSO=DARWIN
         ;;
     *-linux*)
@@ -1213,6 +1234,13 @@ if [ "$DSO" = auto ]; then
 	DSOOPTS='-shared'
 	DSO=OSF
 	;;
+    *-sco3.2*)
+        DSOSUF=so.${DIST_MAJOR}
+        DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
+        LIBCOPTS='-fPIC'
+        DSOOPTS='-shared'
+        DSO=OPENSERVER
+        ;;
 
     esac
 fi
@@ -1669,12 +1697,15 @@ if [ "${JPEG}" = yes ]; then
       LIBJPEG="-ljpeg"
       test -z "${DIR_JPEGLIB-}" || LIBJPEG="-L${DIR_JPEGLIB} ${LIBJPEG}"
     fi
+    if [ "${OJPEG}" = yes ]; then
+      CONF_JPEG="$CONF_JPEG -DOJPEG_SUPPORT"
+    fi
 else
     CONF_JPEG=
     LIBJPEG=
 fi
 if [ "${ZIP}" = yes ]; then
-    test -z "${CONF_ZIP-}"	&& CONF_ZIP="-DZIP_SUPPORT"
+    test -z "${CONF_ZIP-}"	&& CONF_ZIP="-DZIP_SUPPORT -DPIXARLOG_SUPPORT"
     if test -z "${LIBGZ-}" ; then
       LIBGZ="-lz"
       test -z "${DIR_GZLIB-}" || LIBGZ="-L${DIR_GZLIB} ${LIBGZ}"
@@ -1682,6 +1713,12 @@ if [ "${ZIP}" = yes ]; then
 else
     CONF_ZIP=
     LIBGZ=
+fi
+
+if [ "${LARGEFILE}" = yes ]; then
+    LFSOPTS="-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -DUSE_64BIT_API=1"
+else
+    LFSOPTS=
 fi
 
 Note ""
@@ -1783,6 +1820,7 @@ s;@LIBCOPTS@;${LIBCOPTS};g
 s;@LIBPORT@;${LIBPORT};g
 s;@LN@;${LN};g
 s;@LN_S@;${LN_S};g
+s;@LFSOPTS@;${LFSOPTS};g
 s;@MACHDEPLIBS@;${MACHDEPLIBS};g
 s;@MANAPPS@;${MANAPPS};g
 s;@MANAPPNAME@;${MANAPPNAME};g

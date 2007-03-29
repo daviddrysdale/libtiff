@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiff2rgba.c,v 1.5 2001/08/11 03:13:59 warmerda Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/tiff2rgba.c,v 1.7 2003/10/03 11:22:29 dron Exp $ */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler
@@ -46,7 +46,7 @@ int     no_alpha = 0;
 
 
 static	int tiffcvt(TIFF* in, TIFF* out);
-static	void usage(void);
+static	void usage(int code);
 
 int
 main(int argc, char* argv[])
@@ -74,7 +74,7 @@ main(int argc, char* argv[])
             else if (streq(optarg, "zip"))
                 compression = COMPRESSION_DEFLATE;
             else
-                usage();
+                usage(-1);
             break;
 
           case 'r':
@@ -90,12 +90,12 @@ main(int argc, char* argv[])
             break;
             
           case '?':
-            usage();
+            usage(0);
             /*NOTREACHED*/
         }
 
     if (argc - optind < 2)
-        usage();
+        usage(-1);
 
     out = TIFFOpen(argv[argc-1], "w");
     if (out == NULL)
@@ -338,33 +338,11 @@ cvt_whole_image( TIFF *in, TIFF *out )
     }
 
     /* Read the image in one chunk into an RGBA array */
-    if (!TIFFReadRGBAImage(in, width, height, raster, 0)) {
+    if (!TIFFReadRGBAImageOriented(in, width, height, raster,
+                                   ORIENTATION_TOPLEFT, 0)) {
         _TIFFfree(raster);
         return (0);
     }
-
-    /* For some reason the TIFFReadRGBAImage() function chooses the
-       lower left corner as the origin.  Vertically mirror scanlines. */
-
-    wrk_line = (uint32*)_TIFFmalloc(width * sizeof (uint32));
-    if (wrk_line == 0) {
-        TIFFError(TIFFFileName(in), "No space for raster scanline buffer");
-        return (0);
-    }
-    
-    for( row = 0; row < height / 2; row++ )
-    {
-        uint32	*top_line, *bottom_line;
-
-        top_line = raster + width * row;
-        bottom_line = raster + width * (height-row-1);
-
-        _TIFFmemcpy(wrk_line, top_line, 4*width);
-        _TIFFmemcpy(top_line, bottom_line, 4*width);
-        _TIFFmemcpy(bottom_line, wrk_line, 4*width);
-    }
-
-    _TIFFfree( wrk_line );
 
     /*
     ** Do we want to strip away alpha components?
@@ -473,7 +451,7 @@ tiffcvt(TIFF* in, TIFF* out)
             return( cvt_whole_image( in, out ) );
 }
 
-static char* usageMsg[] = {
+static char* stuff[] = {
     "usage: tiff2rgba [-c comp] [-r rows] [-b] input... output\n",
     "where comp is one of the following compression algorithms:\n",
     " jpeg\t\tJPEG encoding\n",
@@ -490,10 +468,14 @@ static char* usageMsg[] = {
 };
 
 static void
-usage(void)
+usage(int code)
 {
+	char buf[BUFSIZ];
 	int i;
-	for (i = 0; usageMsg[i]; i++)
-		fprintf(stderr, "%s", usageMsg[i]);
-	exit(-1);
+
+	setbuf(stderr, buf);
+        fprintf(stderr, "%s\n\n", TIFFGetVersion());
+	for (i = 0; stuff[i] != NULL; i++)
+		fprintf(stderr, "%s\n", stuff[i]);
+	exit(code);
 }

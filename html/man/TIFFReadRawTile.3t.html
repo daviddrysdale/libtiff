@@ -1,91 +1,105 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML><HEAD><TITLE>Manpage of TIFFReadRawTile</TITLE>
-</HEAD><BODY BGCOLOR=WHITE><FONT FACE="helvetica, sans, arial">
-<H1>TIFFReadRawTile</H1>
-Section: Misc. Reference Manual Pages (3T)<BR>Updated: October 15, 1995<BR><A HREF="#index">Index</A>
-<BR><A HREF="index.html">Return to Main Contents</A>
-<HR>
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta name="Content-Style" content="text/css">
+<title>TIFFReadRawTile</title>
+</head>
+<body>
 
-<A NAME="lbAB">&nbsp;</A>
-<H2>NAME</H2>
+<h1 align=center>TIFFReadRawTile</h1>
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#RETURN VALUES">RETURN VALUES</a><br>
+<a href="#DIAGNOSTICS">DIAGNOSTICS</a><br>
+<a href="#SEE ALSO">SEE ALSO</a><br>
 
-TIFFReadRawTile - return an undecoded tile of data from an open
-<FONT SIZE="-1">TIFF</FONT>
-file
-<A NAME="lbAC">&nbsp;</A>
-<H2>SYNOPSIS</H2>
-
-<B>#include &lt;<A HREF="file:/usr/include/tiffio.h">tiffio.h</A>&gt;</B>
-
-<BR>
-
-<B>tsize_t TIFFReadRawTile(TIFF* tif, ttile_t tile, tdata_t buf, tsize_t size)</B>
-
-<A NAME="lbAD">&nbsp;</A>
-<H2>DESCRIPTION</H2>
-
-Read the contents of the specified tile into the
-(user supplied) data buffer.
-Note that the value of
-<I>tile</I>
-
-is a ``raw tile number.''
-That is, the caller must take into account whether or not the
-data is organized in separate planes (<I>PlanarConfiguration</I>=2).
-
-<I>TIFFComputeTile</I>
-
-automatically does this when converting an (x,y,z,sample)
-coordinate quadruple to a tile number.
-To read a full tile of data the data buffer should typically be
-at least as large as the value returned by
-<I>TIFFTileSize</I>.
-
-<A NAME="lbAE">&nbsp;</A>
-<H2>RETURN VALUES</H2>
-
-The actual number of bytes of data that were placed in
-<I>buf</I>
-
-is returned;
-<I>TIFFReadEncodedTile</I>
-
-returns -1 if an error was encountered.
-<A NAME="lbAF">&nbsp;</A>
-<H2>DIAGNOSTICS</H2>
-
-All error messages are directed to the
-<I><A HREF="TIFFError.3t.html">TIFFError</A></I>(3T)
-
-routine.
-<A NAME="lbAG">&nbsp;</A>
-<H2>SEE ALSO</H2>
-
-<I><A HREF="libtiff.3t.html">libtiff</A></I>(3T),
-
-<I><A HREF="TIFFOpen.3t.html">TIFFOpen</A></I>(3T),
-
-<I><A HREF="TIFFReadEncodedTile.3t.html">TIFFReadEncodedTile</A></I>(3T),
-
-<I><A HREF="TIFFReadTile.3t.html">TIFFReadTile</A></I>(3T),
-
-<I><A HREF="TIFFTileSize.3t.html">TIFFTileSize</A></I>(3T)
-
-
-<HR>
-<A NAME="index">&nbsp;</A><H2>Index</H2>
-<DL>
-<DT><A HREF="#lbAB">NAME</A><DD>
-<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
-<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
-<DT><A HREF="#lbAE">RETURN VALUES</A><DD>
-<DT><A HREF="#lbAF">DIAGNOSTICS</A><DD>
-<DT><A HREF="#lbAG">SEE ALSO</A><DD>
-</DL>
-<HR>
-This document was created by
-<A HREF="index.html">man2html</A>,
-using the manual pages.<BR>
-Time: 01:31:38 GMT, November 23, 1999
-</BODY>
-</HTML>
+<hr>
+<!-- Creator     : groff version 1.18 -->
+<!-- CreationDate: Mon Oct  7 17:36:18 2002 -->
+<a name="NAME"></a>
+<h2>NAME</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p>TIFFReadRawTile &minus; return an undecoded tile of data
+from an open <small>TIFF</small> file</p>
+</td>
+</table></p>
+<a name="SYNOPSIS"></a>
+<h2>SYNOPSIS</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p><b>#include &lt;tiffio.h&gt;<br>
+tsize_t TIFFReadRawTile(TIFF* tif, ttile_t tile, tdata_t
+buf, tsize_t size)</b></p>
+</td>
+</table></p>
+<a name="DESCRIPTION"></a>
+<h2>DESCRIPTION</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p>Read the contents of the specified tile into the (user
+supplied) data buffer. Note that the value of <i>tile</i> is
+a &lsquo;&lsquo;raw tile number.&rsquo;&rsquo; That is, the
+caller must take into account whether or not the data is
+organized in separate planes (<i>PlanarConfiguration</i>=2).
+<i>TIFFComputeTile</i> automatically does this when
+converting an (x,y,z,sample) coordinate quadruple to a tile
+number. To read a full tile of data the data buffer should
+typically be at least as large as the value returned by
+<i>TIFFTileSize</i>.</p>
+</td>
+</table></p>
+<a name="RETURN VALUES"></a>
+<h2>RETURN VALUES</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p>The actual number of bytes of data that were placed in
+<i>buf</i> is returned; <i>TIFFReadEncodedTile</i> returns
+&minus;1 if an error was encountered.</p>
+</td>
+</table></p>
+<a name="DIAGNOSTICS"></a>
+<h2>DIAGNOSTICS</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p>All error messages are directed to the
+<i>TIFFError</i>(3T) routine.</p>
+</td>
+</table></p>
+<a name="SEE ALSO"></a>
+<h2>SEE ALSO</h2>
+<!-- INDENTATION -->
+<p><table width="100%" border=0 rules="none" frame="void"
+       cols="2" cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="8%"></td>
+<td width="91%">
+<p><i>libtiff</i>(3T), <i>TIFFOpen</i>(3T),
+<i>TIFFReadEncodedTile</i>(3T), <i>TIFFReadTile</i>(3T),
+<i>TIFFTileSize</i>(3T)</p>
+</td>
+</table></p>
+<hr>
+</body>
+</html>

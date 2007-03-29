@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffdump.c,v 1.1.1.1 1999/07/27 21:50:28 mike Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/tiffdump.c,v 1.3 2003/09/02 13:28:09 warmerda Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -86,7 +86,7 @@ extern	char* optarg;
 void
 usage()
 {
-	fprintf(stderr, "usage: %s [-h] [-o offset] file.tif ...\n", appname);
+	fprintf(stderr, "usage: %s [-h] [-o offset] [-m maxitems] file.tif ...\n", appname);
 	exit(-1);
 }
 
@@ -446,6 +446,7 @@ static	struct tagname {
     { TIFFTAG_JPEGRESTARTINTERVAL,"JPEGRestartInterval" },
     { TIFFTAG_JPEGLOSSLESSPREDICTORS,"JPEGLosslessPredictors" },
     { TIFFTAG_JPEGPOINTTRANSFORM,"JPEGPointTransform" },
+    { TIFFTAG_JPEGTABLES,       "JPEGTables" },
     { TIFFTAG_JPEGQTABLES,	"JPEGQTables" },
     { TIFFTAG_JPEGDCTABLES,	"JPEGDCTables" },
     { TIFFTAG_JPEGACTABLES,	"JPEGACTables" },

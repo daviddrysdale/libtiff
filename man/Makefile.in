@@ -1,5 +1,5 @@
 #! smake
-#	$Header: /cvsroot/osrs/libtiff/man/Makefile.in,v 1.10 2001/09/26 17:32:24 warmerda Exp $
+#	$Header: /cvsroot/osrs/libtiff/man/Makefile.in,v 1.16 2003/10/03 11:23:02 dron Exp $
 #
 # @WARNING@
 #
@@ -92,6 +92,7 @@ MANTOOLS=\
 	apps/pal2rgb.1 \
 	apps/ppm2tiff.1 \
 	apps/ras2tiff.1 \
+	apps/raw2tiff.1 \
 	apps/rgb2ycbcr.1 \
 	apps/sgi2tiff.1 \
 	apps/thumbnail.1 \
@@ -112,6 +113,7 @@ MANDEV=\
 	lib/libtiff.3t \
 	\
 	lib/TIFFClose.3t \
+	lib/TIFFDataWidth.3t \
 	lib/TIFFError.3t \
 	lib/TIFFFlush.3t \
 	lib/TIFFGetField.3t \
@@ -183,6 +185,7 @@ MANDEVLINKS=\
 	lib/TIFFRGBAImageBegin.3t \
 	lib/TIFFRGBAImageGet.3t \
 	lib/TIFFRGBAImageEnd.3t \
+	lib/TIFFReadRGBAImageOriented.3t \
 	lib/TIFFSetErrorHandler.3t \
 	lib/TIFFSetSubDirectory.3t \
 	lib/TIFFSetWarningHandler.3t \
@@ -200,6 +203,8 @@ MANDEVLINKS=\
 	lib/TIFFTileRowSize.3t \
 	lib/TIFFUnRegisterCODEC.3t \
 	lib/TIFFVGetField.3t \
+	lib/TIFFGetFieldDefaulted.3t \
+	lib/TIFFVGetFieldDefaulted.3t \
 	lib/TIFFVSetField.3t \
 	lib/TIFFReadBufferSetup.3t \
 	lib/TIFFWriteBufferSetup.3t \
@@ -226,6 +231,7 @@ apps/gif2tiff.1::	${SRCDIR}/gif2tiff.1;	${MANCVT}
 apps/pal2rgb.1::	${SRCDIR}/pal2rgb.1;	${MANCVT}
 apps/ppm2tiff.1::	${SRCDIR}/ppm2tiff.1;	${MANCVT}
 apps/ras2tiff.1::	${SRCDIR}/ras2tiff.1;	${MANCVT}
+apps/raw2tiff.1::	${SRCDIR}/raw2tiff.1;	${MANCVT}
 apps/rgb2ycbcr.1::	${SRCDIR}/rgb2ycbcr.1;	${MANCVT}
 apps/sgi2tiff.1::	${SRCDIR}/sgi2tiff.1;	${MANCVT}
 apps/thumbnail.1::	${SRCDIR}/thumbnail.1;	${MANCVT}
@@ -244,6 +250,7 @@ apps/tiffsv.1::		${SRCDIR}/tiffsv.1;	${MANCVT}
 
 lib/libtiff.3t::	${SRCDIR}/libtiff.3t;			${MANCVT}
 lib/TIFFClose.3t::	${SRCDIR}/TIFFClose.3t;			${MANCVT}
+lib/TIFFDataWidth.3t::	${SRCDIR}/TIFFDataWidth.3t;		${MANCVT}
 lib/TIFFError.3t::	${SRCDIR}/TIFFError.3t;			${MANCVT}
 lib/TIFFFlush.3t::	${SRCDIR}/TIFFFlush.3t;			${MANCVT}
 lib/TIFFGetField.3t::	${SRCDIR}/TIFFGetField.3t;		${MANCVT}
@@ -301,10 +308,12 @@ lib/TIFFIsMSB2LSB.3t:;		${ECHO} ".so ${MANDIR}TIFFquery.3t" > $@
 lib/TIFFLastDirectory.3t:;	${ECHO} ".so ${MANDIR}TIFFquery.3t" > $@
 lib/TIFFReverseBits.3t:;	${ECHO} ".so ${MANDIR}TIFFswab.3t" > $@
 lib/TIFFRewriteDirectory.3t:;	${ECHO} ".so ${MANDIR}TIFFWriteDirectory.3t" > $@
+lib/TIFFCheckpointDirectory.3t:; ${ECHO} ".so ${MANDIR}TIFFWriteDirectory.3t" > $@
 lib/TIFFRGBAImageOK.3t:;	${ECHO} ".so ${MANDIR}TIFFRGBAImage.3t" > $@
 lib/TIFFRGBAImageBegin.3t:;	${ECHO} ".so ${MANDIR}TIFFRGBAImage.3t" > $@
 lib/TIFFRGBAImageGet.3t:;	${ECHO} ".so ${MANDIR}TIFFRGBAImage.3t" > $@
 lib/TIFFRGBAImageEnd.3t:;	${ECHO} ".so ${MANDIR}TIFFRGBAImage.3t" > $@
+lib/TIFFReadRGBAImageOriented.3t:;	${ECHO} ".so ${MANDIR}TIFFReadRGBAImage.3t" > $@
 lib/TIFFSetErrorHandler.3t:;	${ECHO} ".so ${MANDIR}TIFFError.3t" > $@
 lib/TIFFSetSubDirectory.3t:;	${ECHO} ".so ${MANDIR}TIFFSetDirectory.3t" > $@
 lib/TIFFSetWarningHandler.3t:;	${ECHO} ".so ${MANDIR}TIFFWarning.3t" > $@
@@ -322,6 +331,8 @@ lib/TIFFVTileSize.3t:;		${ECHO} ".so ${MANDIR}TIFFtile.3t" > $@
 lib/TIFFDefaultTileSize.3t:;	${ECHO} ".so ${MANDIR}TIFFtile.3t" > $@
 lib/TIFFTileRowSize.3t:;	${ECHO} ".so ${MANDIR}TIFFtile.3t" > $@
 lib/TIFFVGetField.3t:;		${ECHO} ".so ${MANDIR}TIFFGetField.3t" > $@
+lib/TIFFGetFieldDefaulted.3t:;	${ECHO} ".so ${MANDIR}TIFFGetField.3t" > $@
+lib/TIFFVGetFieldDefaulted.3t:;	${ECHO} ".so ${MANDIR}TIFFGetField.3t" > $@
 lib/TIFFVSetField.3t:;		${ECHO} ".so ${MANDIR}TIFFSetField.3t" > $@
 lib/TIFFFindCODEC.3t:;		${ECHO} ".so ${MANDIR}TIFFcodec.3t" > $@
 lib/TIFFRegisterCODEC.3t:;	${ECHO} ".so ${MANDIR}TIFFcodec.3t" > $@
@@ -344,7 +355,7 @@ apps/Makefile:
 	 for i in *.1; do						\
 	    f=${MANAPPNAME};						\
 	    ${ECHO} '	cd ..; ${INSTALL} -m 444 			\
-		-F ${DESTDIR}${MAN}/${MANAPPS}				\
+		-F $${DESTDIR}${MAN}/${MANAPPS}				\
 		-idb tiff.man.tools -src' apps/"$$i" '-O' "$$f";	\
 	 done								\
 	)>apps/Makefile
@@ -357,7 +368,7 @@ lib/Makefile:
 	 for i in *.3t; do						\
 	    f=${MANLIBNAME};						\
 	    ${ECHO} '	cd ..; ${INSTALL} -m 444 			\
-		-F ${DESTDIR}${MAN}/${MANLIB}				\
+		-F $${DESTDIR}${MAN}/${MANLIB}				\
 		-idb tiff.man.dev -src' lib/"$$i" '-O' "$$f";		\
 	 done								\
 	)>lib/Makefile
@@ -380,6 +391,7 @@ links:	${MANDEVLINKS}
 
 short:
 	${MV} TIFFClose.3t close.3t
+	${MV} TIFFDataWidth.3t width.3t
 	${MV} TIFFError.3t error.3t
 	${MV} TIFFFlush.3t flush.3t
 	${MV} TIFFGetField.3t getfield.3t

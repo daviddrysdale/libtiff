@@ -1,5 +1,5 @@
 #! smake
-#	$Header: /cvsroot/osrs/libtiff/Makefile.in,v 1.25 2001/11/23 16:15:35 warmerda Exp $
+# $Header: /cvsroot/osrs/libtiff/Makefile.in,v 1.37 2003/10/07 08:14:33 dron Exp $
 #
 # @WARNING@
 #
@@ -157,6 +157,7 @@ TIFFFILES=\
 	    libtiff/tif_dirwrite.c		\
 	    libtiff/tif_dumpmode.c		\
 	    libtiff/tif_error.c			\
+	    libtiff/tif_extension.c		\
 	    libtiff/tif_fax3.c			\
 	    libtiff/fax3sm_winnt.c		\
 	    libtiff/tif_fax3.h			\
@@ -204,6 +205,7 @@ TIFFFILES=\
 	    tools/ppm2tiff.c			\
 	    tools/ras2tiff.c			\
 	    tools/rasterfile.h			\
+	    tools/raw2tiff.c			\
 	    tools/rgb2ycbcr.c			\
 	    tools/sgi2tiff.c			\
 	    tools/sgigt.c			\
@@ -228,6 +230,7 @@ TIFFFILES=\
 	    man/pal2rgb.1			\
 	    man/ppm2tiff.1			\
 	    man/ras2tiff.1			\
+	    man/raw2tiff.1			\
 	    man/rgb2ycbcr.1			\
 	    man/sgi2tiff.1			\
 	    man/thumbnail.1			\
@@ -244,6 +247,7 @@ TIFFFILES=\
 	    man/tiffsplit.1			\
 	    man/tiffsv.1			\
 	    man/TIFFClose.3t			\
+	    man/TIFFDataWidth.3t		\
 	    man/TIFFError.3t			\
 	    man/TIFFFlush.3t			\
 	    man/TIFFGetField.3t			\
@@ -321,12 +325,17 @@ TIFFFILES=\
 	    html/v3.4beta034.html				\
 	    html/v3.4beta035.html				\
 	    html/v3.4beta036.html				\
-	    html/v3.5.1.html				\
-	    html/v3.5.2.html				\
-	    html/v3.5.3.html				\
-	    html/v3.5.7.html				\
-	    html/man				\
+	    html/v3.5.1.html					\
+	    html/v3.5.2.html					\
+	    html/v3.5.3.html					\
+	    html/v3.5.4.html					\
+	    html/v3.5.5.html					\
+	    html/v3.5.6-beta.html				\
+	    html/v3.5.7.html					\
+	    html/v3.6.0.html					\
+	    html/man						\
 	    html/man/TIFFClose.3t.html				\
+	    html/man/TIFFDataWidth.3t.html			\
 	    html/man/TIFFError.3t.html				\
 	    html/man/TIFFFlush.3t.html				\
 	    html/man/TIFFGetField.3t.html				\
@@ -349,9 +358,9 @@ TIFFFILES=\
 	    html/man/TIFFWriteDirectory.3t.html				\
 	    html/man/TIFFWriteEncodedStrip.3t.html				\
 	    html/man/TIFFWriteEncodedTile.3t.html				\
-	    html/man/TIFFWriteRawStrip.3t.html				\
-	    html/man/TIFFWriteRawTile.3t.html				\
-	    html/man/TIFFWriteScanline.3t.html				\
+	    html/man/TIFFWriteRawStrip.3t.html			\
+	    html/man/TIFFWriteRawTile.3t.html			\
+	    html/man/TIFFWriteScanline.3t.html			\
 	    html/man/TIFFbuffer.3t.html				\
 	    html/man/TIFFcodec.3t.html				\
 	    html/man/TIFFmemory.3t.html				\
@@ -367,11 +376,13 @@ TIFFFILES=\
 	    html/man/pal2rgb.1.html				\
 	    html/man/ppm2tiff.1.html				\
 	    html/man/ras2tiff.1.html				\
+	    html/man/raw2tiff.1.html				\
 	    html/man/rgb2ycbcr.1.html				\
 	    html/man/sgi2tiff.1.html				\
 	    html/man/thumbnail.1.html				\
 	    html/man/tiff2bw.1.html				\
 	    html/man/tiff2ps.1.html				\
+	    html/man/tiff2rgba.1.html				\
 	    html/man/tiffcmp.1.html				\
 	    html/man/tiffcp.1.html				\
 	    html/man/tiffdither.1.html				\
@@ -381,8 +392,8 @@ TIFFFILES=\
 	    html/man/tiffmedian.1.html				\
 	    html/man/tiffsplit.1.html				\
 	    html/man/tiffsv.1.html				\
-	    html/man/index.html				\
-	    html/man/TIFFWriteTile.3t.html				\
+	    html/man/index.html					\
+	    html/man/TIFFWriteTile.3t.html			\
 	    ${NULL}
 OTHERFILES=\
 	${NULL}
@@ -433,9 +444,11 @@ CONTRIBFILES=\
 	contrib/win32/README			\
 	    contrib/win32/dllshell.c		\
 	    contrib/win32/libtiff.def		\
-	contrib/win95/README			\
-	    contrib/win95/Makefile.w95		\
-	    contrib/win95/tiff2dib.c		\
+	contrib/win_dib/README.tiff2dib		\
+	    contrib/win_dib/Makefile.w95	\
+	    contrib/win_dib/tiff2dib.c		\
+	    contrib/win_dib/README.Tiffile	\
+	    contrib/win_dib/Tiffile.cpp		\
 	contrib/winnt/README			\
 	    contrib/winnt/README.console	\
 	    contrib/winnt/fax3sm.c		\

@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffdither.c,v 1.3 1999/12/27 17:35:01 mwelles Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/tiffdither.c,v 1.6 2003/05/05 19:13:42 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -247,7 +247,10 @@ main(int argc, char* argv[])
 	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	TIFFSetField(out, TIFFTAG_COMPRESSION, compression);
 	TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-	TIFFSetField(out, TIFFTAG_FILLORDER, fillorder);
+	if (fillorder)
+		TIFFSetField(out, TIFFTAG_FILLORDER, fillorder);
+	else
+		CopyField(TIFFTAG_FILLORDER, shortv);
 	sprintf(thing, "Dithered B&W version of %s", argv[optind]);
 	TIFFSetField(out, TIFFTAG_IMAGEDESCRIPTION, thing);
 	CopyField(TIFFTAG_ORIENTATION, shortv);
@@ -308,6 +311,7 @@ usage(void)
 	int i;
 
 	setbuf(stderr, buf);
+        fprintf(stderr, "%s\n\n", TIFFGetVersion());
 	for (i = 0; stuff[i] != NULL; i++)
 		fprintf(stderr, "%s\n", stuff[i]);
 	exit(-1);

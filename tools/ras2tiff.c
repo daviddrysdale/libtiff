@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/ras2tiff.c,v 1.3 1999/12/27 17:35:01 mwelles Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/ras2tiff.c,v 1.5 2003/03/12 14:05:06 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -66,7 +66,7 @@ main(int argc, char* argv[])
 	extern int optind;
 	extern char* optarg;
 
-	while ((c = getopt(argc, argv, "c:r:")) != -1)
+	while ((c = getopt(argc, argv, "c:r:h")) != -1)
 		switch (c) {
 		case 'c':		/* compression scheme */
 			if (!processCompressOptions(optarg))
@@ -75,7 +75,7 @@ main(int argc, char* argv[])
 		case 'r':		/* rows/strip */
 			rowsperstrip = atoi(optarg);
 			break;
-		case '?':
+		case 'h':
 			usage();
 			/*NOTREACHED*/
 		}
@@ -238,7 +238,7 @@ char* stuff[] = {
 " -c lzw[:opts]	compress output with Lempel-Ziv & Welch encoding",
 "               (no longer supported by default due to Unisys patent enforcement)", 
 " -c zip[:opts]	compress output with deflate encoding",
-" -c jpeg[:opts]compress output with JPEG encoding",
+" -c jpeg[:opts]	compress output with JPEG encoding",
 " -c packbits	compress output with packbits encoding",
 " -c none	use no compression algorithm on output",
 "",
@@ -250,6 +250,7 @@ char* stuff[] = {
 "LZW and deflate options:",
 " #		set predictor value",
 "For example, -c lzw:2 to get LZW-encoded data with horizontal differencing",
+" -h		this help message",
 NULL
 };
 
@@ -260,6 +261,7 @@ usage(void)
 	int i;
 
 	setbuf(stderr, buf);
+        fprintf(stderr, "%s\n\n", TIFFGetVersion());
 	for (i = 0; stuff[i] != NULL; i++)
 		fprintf(stderr, "%s\n", stuff[i]);
 	exit(-1);

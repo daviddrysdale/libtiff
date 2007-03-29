@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffcp.c,v 1.5 2001/02/19 15:18:19 warmerda Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/tools/tiffcp.c,v 1.14 2003/07/26 03:50:08 warmerda Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -65,6 +65,7 @@ static	uint16 config;
 static	uint16 compression;
 static	uint16 predictor;
 static	uint16 fillorder;
+static	uint16 orientation;
 static	uint32 rowsperstrip;
 static	uint32 g3opts;
 static	int ignore = FALSE;		/* if true, ignore read errors */
@@ -80,6 +81,7 @@ static	void usage(void);
 
 static char comma = ',';  /* (default) comma separator character */
 static TIFF* bias = NULL;
+static int pageNum = 0;
 
 static int nextSrcImage (TIFF *tif, char **imageSpec)
 /*
@@ -93,17 +95,20 @@ static int nextSrcImage (TIFF *tif, char **imageSpec)
     unsigned long nextImage = strtol (start, imageSpec, 0);
     if (start == *imageSpec) nextImage = TIFFCurrentDirectory (tif);
     if (**imageSpec)
+    {
       if (**imageSpec == comma) {  
         /* a trailing comma denotes remaining images in sequence */
-        if ((*imageSpec)[1] == '\0') *imageSpec == NULL;
+        if ((*imageSpec)[1] == '\0') *imageSpec = NULL;
       }else{
         fprintf (stderr, 
           "Expected a %c separated image # list after %s\n",
           comma, TIFFFileName (tif));
         exit (-4);   /* syntax error */
       }
+    }
     if (TIFFSetDirectory (tif, nextImage)) return 1;  
-    fprintf (stderr, "%s%c%d not found!\n", TIFFFileName(tif),comma,nextImage); 
+    fprintf (stderr, "%s%c%d not found!\n", 
+             TIFFFileName(tif), comma, (int) nextImage); 
   }
   return 0;
 }
@@ -144,7 +149,7 @@ main(int argc, char* argv[])
 	uint16 deffillorder = 0;
 	uint32 deftilewidth = (uint32) -1;
 	uint32 deftilelength = (uint32) -1;
-	uint32 defrowsperstrip = (uint32) -1;
+	uint32 defrowsperstrip = (uint32) 0;
 	uint32 diroff = 0;
 	TIFF* in;
 	TIFF* out;
@@ -168,7 +173,7 @@ main(int argc, char* argv[])
                           exit (-2);
                         }
                         {
-                          uint16    samples = -1;
+                          uint16    samples = (uint16) -1;
                           char **biasFn = &optarg;
                           bias = openSrcImage (biasFn);
                           if (!bias) exit (-5);
@@ -217,7 +222,7 @@ main(int argc, char* argv[])
 				usage();
 			break;
 		case 'r':		/* rows/strip */
-			defrowsperstrip = atoi(optarg);
+			defrowsperstrip = atol(optarg);
 			break;
 		case 's':		/* generate stripped output */
 			outtiled = FALSE;
@@ -250,6 +255,8 @@ main(int argc, char* argv[])
 	out = TIFFOpen(argv[argc-1], mode);
 	if (out == NULL)
 		return (-2);
+	if ((argc - optind) == 2)
+	  pageNum = -1;
 	for (; optind < argc-1 ; optind++) {
                 char *imageCursor = argv[optind];
 		in = openSrcImage (&imageCursor);
@@ -281,13 +288,15 @@ main(int argc, char* argv[])
 		}
 		TIFFClose(in);
 	}
+
+        exit( 0 );
 }
 
 
 static void
 processG3Options(char* cp)
 {
-	if (cp = strchr(cp, ':')) {
+	if( (cp = strchr(cp, ':')) ) {
 		if (defg3opts == (uint32) -1)
 			defg3opts = 0;
 		do {
@@ -300,7 +309,7 @@ processG3Options(char* cp)
 				defg3opts |= GROUP3OPT_FILLBITS;
 			else
 				usage();
-		} while (cp = strchr(cp, ':'));
+		} while( (cp = strchr(cp, ':')) );
 	}
 }
 
@@ -396,27 +405,10 @@ usage(void)
 	int i;
 
 	setbuf(stderr, buf);
+        fprintf(stderr, "%s\n\n", TIFFGetVersion());
 	for (i = 0; stuff[i] != NULL; i++)
 		fprintf(stderr, "%s\n", stuff[i]);
 	exit(-1);
-}
-
-static void
-CheckAndCorrectColormap(TIFF* tif, int n, uint16* r, uint16* g, uint16* b)
-{
-	int i;
-
-	for (i = 0; i < n; i++)
-		if (r[i] >= 256 || g[i] >= 256 || b[i] >= 256)
-			return;
-	TIFFWarning(TIFFFileName(tif), "Scaling 8-bit colormap");
-#define	CVT(x)		(((x) * ((1L<<16)-1)) / 255)
-	for (i = 0; i < n; i++) {
-		r[i] = CVT(r[i]);
-		g[i] = CVT(g[i]);
-		b[i] = CVT(b[i]);
-	}
-#undef CVT
 }
 
 #define	CopyField(tag, v) \
@@ -476,6 +468,8 @@ cpTag(TIFF* in, TIFF* out, uint16 tag, uint16 count, TIFFDataType type)
 			CopyField(tag, doubleav);
 		}
 		break;
+          default:
+            assert( FALSE );
 	}
 }
 
@@ -490,7 +484,6 @@ static struct cpTag {
 	{ TIFFTAG_IMAGEDESCRIPTION,	1, TIFF_ASCII },
 	{ TIFFTAG_MAKE,			1, TIFF_ASCII },
 	{ TIFFTAG_MODEL,		1, TIFF_ASCII },
-	{ TIFFTAG_ORIENTATION,		1, TIFF_SHORT },
 	{ TIFFTAG_MINSAMPLEVALUE,	1, TIFF_SHORT },
 	{ TIFFTAG_MAXSAMPLEVALUE,	1, TIFF_SHORT },
 	{ TIFFTAG_XRESOLUTION,		1, TIFF_RATIONAL },
@@ -499,7 +492,6 @@ static struct cpTag {
 	{ TIFFTAG_XPOSITION,		1, TIFF_RATIONAL },
 	{ TIFFTAG_YPOSITION,		1, TIFF_RATIONAL },
 	{ TIFFTAG_RESOLUTIONUNIT,	1, TIFF_SHORT },
-	{ TIFFTAG_PAGENUMBER,		2, TIFF_SHORT },
 	{ TIFFTAG_SOFTWARE,		1, TIFF_ASCII },
 	{ TIFFTAG_DATETIME,		1, TIFF_ASCII },
 	{ TIFFTAG_ARTIST,		1, TIFF_ASCII },
@@ -534,20 +526,29 @@ static int
 tiffcp(TIFF* in, TIFF* out)
 {
 	uint16 bitspersample, samplesperpixel;
+        uint16 input_compression;
 	copyFunc cf;
-	uint32 w, l;
+	uint32 width, length;
 	struct cpTag* p;
 
-	CopyField(TIFFTAG_IMAGEWIDTH, w);
-	CopyField(TIFFTAG_IMAGELENGTH, l);
+	CopyField(TIFFTAG_IMAGEWIDTH, width);
+	CopyField(TIFFTAG_IMAGELENGTH, length);
 	CopyField(TIFFTAG_BITSPERSAMPLE, bitspersample);
 	CopyField(TIFFTAG_SAMPLESPERPIXEL, samplesperpixel);
 	if (compression != (uint16)-1)
 		TIFFSetField(out, TIFFTAG_COMPRESSION, compression);
 	else
 		CopyField(TIFFTAG_COMPRESSION, compression);
-	if (compression == COMPRESSION_JPEG && jpegcolormode == JPEGCOLORMODE_RGB)
+	if (compression == COMPRESSION_JPEG) {
+            if ( TIFFGetField( in, TIFFTAG_COMPRESSION, &input_compression )
+                 && input_compression == COMPRESSION_JPEG ) {
+                TIFFSetField(in, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
+            }
+            if (jpegcolormode == JPEGCOLORMODE_RGB)
 		TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_YCBCR);
+            else
+                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+        }
 	else if (compression == COMPRESSION_SGILOG || compression == COMPRESSION_SGILOG24)
 		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
 		    samplesperpixel == 1 ?
@@ -558,6 +559,30 @@ tiffcp(TIFF* in, TIFF* out)
 		TIFFSetField(out, TIFFTAG_FILLORDER, fillorder);
 	else
 		CopyTag(TIFFTAG_FILLORDER, 1, TIFF_SHORT);
+	/*
+	 * Will copy `Orientation' tag from input image
+	 */
+	TIFFGetField(in, TIFFTAG_ORIENTATION, &orientation);
+	switch (orientation) {
+		case ORIENTATION_BOTRIGHT:
+		case ORIENTATION_RIGHTBOT:	/* XXX */
+		case ORIENTATION_LEFTBOT:	/* XXX */
+			TIFFWarning(TIFFFileName(in), "using bottom-left orientation");
+			orientation = ORIENTATION_BOTLEFT;
+		/* fall thru... */
+		case ORIENTATION_BOTLEFT:
+			break;
+		case ORIENTATION_TOPRIGHT:
+		case ORIENTATION_RIGHTTOP:	/* XXX */
+		case ORIENTATION_LEFTTOP:	/* XXX */
+		default:
+			TIFFWarning(TIFFFileName(in), "using top-left orientation");
+			orientation = ORIENTATION_TOPLEFT;
+		/* fall thru... */
+		case ORIENTATION_TOPLEFT:
+			break;
+	}
+	TIFFSetField(out, TIFFTAG_ORIENTATION, orientation);
 	/*
 	 * Choose tiles/strip for the output image according to
 	 * the command line arguments (-tiles, -strips) and the
@@ -585,9 +610,13 @@ tiffcp(TIFF* in, TIFF* out)
 		 * value from the input image or, if nothing is defined,
 		 * use the library default.
 		 */
-		if (rowsperstrip == (uint32) -1)
-			TIFFGetField(in, TIFFTAG_ROWSPERSTRIP, &rowsperstrip);
-		rowsperstrip = TIFFDefaultStripSize(out, rowsperstrip);
+		if (rowsperstrip == (uint32) 0) {
+			if (!TIFFGetField(in, TIFFTAG_ROWSPERSTRIP,&rowsperstrip))
+				rowsperstrip =
+					TIFFDefaultStripSize(out, rowsperstrip);
+		}
+		else if (rowsperstrip == (uint32) -1)
+			rowsperstrip = length;
 		TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip);
 	}
 	if (config != (uint16) -1)
@@ -601,7 +630,7 @@ tiffcp(TIFF* in, TIFF* out)
 	switch (compression) {
 	case COMPRESSION_JPEG:
 		TIFFSetField(out, TIFFTAG_JPEGQUALITY, quality);
-		TIFFSetField(out, TIFFTAG_JPEGCOLORMODE, jpegcolormode);
+		//TIFFSetField(out, TIFFTAG_JPEGCOLORMODE, jpegcolormode);
 		break;
 	case COMPRESSION_LZW:
 	case COMPRESSION_DEFLATE:
@@ -633,11 +662,19 @@ tiffcp(TIFF* in, TIFF* out)
 	  if (TIFFGetField(in, TIFFTAG_ICCPROFILE, &len32, &data))
 		TIFFSetField(out, TIFFTAG_ICCPROFILE, len32, data);
 	}
+	{
+	  unsigned short pg0, pg1;
+	  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1))
+		if (pageNum < 0) // only one input file
+			TIFFSetField(out, TIFFTAG_PAGENUMBER, pg0, pg1);
+		else 
+			TIFFSetField(out, TIFFTAG_PAGENUMBER, pageNum++, 0);
+	}
 	for (p = tags; p < &tags[NTAGS]; p++)
 		CopyTag(p->tag, p->count, p->type);
 
 	cf = pickCopyFunc(in, out, bitspersample, samplesperpixel);
-	return (cf ? (*cf)(in, out, l, w, samplesperpixel) : FALSE);
+	return (cf ? (*cf)(in, out, length, width, samplesperpixel) : FALSE);
 }
 
 /*

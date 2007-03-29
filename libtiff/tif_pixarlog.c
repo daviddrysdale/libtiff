@@ -86,7 +86,6 @@
 
 #include "tif_predict.h"
 #include "zlib.h"
-#include "zutil.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -490,8 +489,7 @@ PixarLogMakeTables(PixarLogState *sp)
 
     int  nlin, lt2size;
     int  i, j;
-    double  b, c, linstep, max;
-    double  k, v, dv, r, lr2, r2;
+    double  b, c, linstep, v;
     float *ToLinearF;
     uint16 *ToLinear16;
     unsigned char *ToLinear8;
@@ -500,14 +498,14 @@ PixarLogMakeTables(PixarLogState *sp)
     uint16  *From8;
 
     c = log(RATIO);	
-    nlin = 1./c;	/* nlin must be an integer */
+    nlin = (int)1./c;	/* nlin must be an integer */
     c = 1./nlin;
     b = exp(-c*ONE);	/* multiplicative scale factor [b*exp(c*ONE) = 1] */
     linstep = b*c*exp(1.);
 
     LogK1 = 1./c;	/* if (v >= 2)  token = k1*log(v*k2) */
     LogK2 = 1./b;
-    lt2size = (2./linstep)+1;
+    lt2size = (int)(2./linstep) + 1;
     FromLT2 = (uint16 *)_TIFFmalloc(lt2size*sizeof(uint16));
     From14 = (uint16 *)_TIFFmalloc(16384*sizeof(uint16));
     From8 = (uint16 *)_TIFFmalloc(256*sizeof(uint16));
@@ -545,9 +543,9 @@ PixarLogMakeTables(PixarLogState *sp)
 
     for (i = 0; i < TSIZEP1; i++)  {
 	v = ToLinearF[i]*65535.0 + 0.5;
-	ToLinear16[i] = (v > 65535.0) ? 65535 : v;
+	ToLinear16[i] = (v > 65535.0) ? 65535 : (uint16)v;
 	v = ToLinearF[i]*255.0  + 0.5;
-	ToLinear8[i]  = (v > 255.0) ? 255 : v;
+	ToLinear8[i]  = (v > 255.0) ? 255 : (unsigned char)v;
     }
 
     j = 0;
@@ -675,7 +673,6 @@ PixarLogSetupDecode(TIFF* tif)
 static int
 PixarLogPreDecode(TIFF* tif, tsample_t s)
 {
-	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState* sp = DecoderState(tif);
 
 	(void) s;
@@ -833,7 +830,6 @@ PixarLogSetupEncode(TIFF* tif)
 static int
 PixarLogPreEncode(TIFF* tif, tsample_t s)
 {
-	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState *sp = EncoderState(tif);
 
 	(void) s;
@@ -1282,10 +1278,10 @@ TIFFInitPixarLog(TIFF* tif, int scheme)
 
 	/* Override SetField so we can handle our private pseudo-tag */
 	_TIFFMergeFieldInfo(tif, pixarlogFieldInfo, N(pixarlogFieldInfo));
-	sp->vgetparent = tif->tif_vgetfield;
-	tif->tif_vgetfield = PixarLogVGetField;   /* hook for codec tags */
-	sp->vsetparent = tif->tif_vsetfield;
-	tif->tif_vsetfield = PixarLogVSetField;   /* hook for codec tags */
+	sp->vgetparent = tif->tif_tagmethods.vgetfield;
+	tif->tif_tagmethods.vgetfield = PixarLogVGetField;   /* hook for codec tags */
+	sp->vsetparent = tif->tif_tagmethods.vsetfield;
+	tif->tif_tagmethods.vsetfield = PixarLogVSetField;   /* hook for codec tags */
 
 	/* Default values for codec-specific fields */
 	sp->quality = Z_DEFAULT_COMPRESSION; /* default comp. level */

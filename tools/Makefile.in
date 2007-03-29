@@ -1,4 +1,4 @@
-#	$Header: /cvsroot/osrs/libtiff/tools/Makefile.in,v 1.9 2001/07/17 13:13:37 warmerda Exp $
+#	$Header: /cvsroot/osrs/libtiff/tools/Makefile.in,v 1.11 2002/08/10 15:25:54 dron Exp $
 #
 # @WARNING@
 #
@@ -64,6 +64,7 @@ OBJS=	\
 	ppm2tiff.o \
 	rgb2ycbcr.o \
 	ras2tiff.o \
+	raw2tiff.o \
 	thumbnail.o \
 	tiff2bw.o \
 	tiff2rgba.o \
@@ -86,6 +87,7 @@ TARGETS	=\
 	rgb2ycbcr \
 	thumbnail \
 	ras2tiff \
+	raw2tiff \
 	tiff2bw \
 	tiff2rgba \
 	tiff2ps \
@@ -111,9 +113,9 @@ all:	${TARGETS}
 	    true; \
 	fi
 install: all
-	${INSTALL} -idb nostrip -idb tiff.sw.tools -m 755 		\
+	${INSTALL} -idb tiff.sw.tools -m 755 				\
 		-dir ${DESTDIR}@DIR_BIN@
-	${INSTALL} -idb nostrip -idb tiff.sw.tools -m 755 		\
+	${INSTALL} -idb tiff.sw.tools -m 755 				\
 		-F ${DESTDIR}@DIR_BIN@ -O ${TARGETS}
 	@if [ "@LIBIMAGE@" = yes ]; then 				\
 	    ${INSTALL} -idb tiff.sw.tools -m 755 			\
@@ -204,6 +206,12 @@ ras2tiff: ras2tiff.o ${TIFFLIB}
 ras2tiff.o: ${SRCDIR}/ras2tiff.c
 	${CC} -c ${CFLAGS} ${SRCDIR}/ras2tiff.c
 
+# convert raw images to TIFFs
+raw2tiff: raw2tiff.o ${TIFFLIB}
+	${CC} -o raw2tiff ${CFLAGS} raw2tiff.o ${LIBS}
+raw2tiff.o: ${SRCDIR}/raw2tiff.c
+	${CC} -c ${CFLAGS} ${SRCDIR}/raw2tiff.c
+
 # simple GIF converter
 gif2tiff: gif2tiff.o ${TIFFLIB}
 	${CC} -o gif2tiff ${CFLAGS} gif2tiff.o ${LIBS}
@@ -269,3 +277,4 @@ tiffsv:	sgisv.o ${TIFFLIB}
 	${CC} -o tiffsv ${CFLAGS} sgisv.o -lgutil -lgl ${LIBS}
 sgisv.o: ${SRCDIR}/sgisv.c
 	${CC} -c ${CFLAGS} ${SRCDIR}/sgisv.c
+
