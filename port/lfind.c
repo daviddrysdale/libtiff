@@ -1,8 +1,11 @@
-/* $Id: strcasecmp.c,v 1.2 2005/07/07 16:34:06 dron Exp $ */
+/* $Id: lfind.c,v 1.2 2005/07/07 16:34:06 dron Exp $ */
 
 /*
- * Copyright (c) 1987, 1993
+ * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Roger L. Snyder.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,21 +33,28 @@
  */
 
 #if 0
-static char sccsid[] = "@(#)strcasecmp.c	8.1 (Berkeley) 6/4/93";
-__RCSID("$NetBSD: strcasecmp.c,v 1.16 2003/08/07 16:43:49 agc Exp $");
+static char sccsid[] = "@(#)lsearch.c	8.1 (Berkeley) 6/4/93";
+__RCSID("$NetBSD: lsearch.c,v 1.2 2005/07/06 15:47:15 drochner Exp $");
 #endif
 
-#include <ctype.h>
-#include <string.h>
+#include <sys/types.h>
 
-int
-strcasecmp(const char *s1, const char *s2)
+#ifndef NULL
+# define NULL 0
+#endif
+
+typedef int (*cmp_fn_t) __P((const void *, const void *));
+
+void *
+lfind(const void *key, const void *base, size_t *nmemb, size_t size,
+      cmp_fn_t compar)
 {
-	const unsigned char *us1 = (const unsigned char *)s1,
-			*us2 = (const unsigned char *)s2;
+	char *element, *end;
 
-	while (tolower(*us1) == tolower(*us2++))
-		if (*us1++ == '\0')
-			return (0);
-	return (tolower(*us1) - tolower(*--us2));
+	end = (char *)base + *nmemb * size;
+	for (element = (char *)base; element < end; element += size)
+		if (!compar(element, key))		/* key found */
+			return element;
+
+	return NULL;
 }
