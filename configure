@@ -1,5 +1,5 @@
 #!/bin/sh
-#	$Header: /cvsroot/osrs/libtiff/configure,v 1.3 2000/03/20 18:20:42 mwelles Exp $
+#	$Header: /cvsroot/osrs/libtiff/configure,v 1.10 2000/12/22 22:33:41 mwelles Exp $
 #
 # Tag Image File Format (TIFF) Software
 #
@@ -44,10 +44,8 @@ SRCDIR=					# dir where source is located
 #
 # Setup general configuration parameters.
 #
-DIR_BIN=/usr/local/bin			# destination for applications
-DIR_LIB=/usr/local/lib			# destination for library
-DIR_INC=/usr/local/include		# destination for include files
-DIR_HTML=/var/httpd/htdocs/tiff		# destination for HTML files
+PREFIX=/usr/local                       # root of installation 
+EPREFIX=${PREFIX}
 DIRS_LIBINC=				# dirs to search for ancillary includes
 DIR_JPEGLIB=				# dir for IJG -ljpeg
 DIR_GZLIB=				# dir for zlib -lgz
@@ -99,6 +97,8 @@ Options: [defaults in brackets after descriptions]
   --verbose		  opposite of --quiet
   --noninteractive        don't ask any questions
   --version               print the version of autoconf that created configure
+  --prefix=PREFIX         root of installation [PREFIX=/usr/local]
+  --exec-prefix=EPREFIX   root of installation [EPREFIX=PREFIX]
   --target=TARGET         configure for TARGET [TARGET=HOST]
   --srcdir=DIR            find the sources in DIR [configure dir or ..]
   --with-PARAM[=ARG]      set configuration PARAM [ARG=yes]
@@ -144,10 +144,15 @@ do
     -site=*|--site=*)		SITE="$ac_optarg";;
     -srcdir|--srcdir)		ac_prev=SRCDIR;;
     -srcdir=*|--srcdir=*)	SRCDIR="$ac_optarg";;
+    --exec-prefix)		ac_prev=EPREFIX;;
+    --exec-prefix=*)		EPREFIX="$ac_optarg" ;;
+    --prefix)			ac_prev=PREFIX;;
+    --prefix=*)			PREFIX="$ac_optarg";
+                                EPREFIX=${PREFIX} ;;
     -target|--target)		ac_prev=TARGET;;
     -target=*|--target=*)	TARGET="$ac_optarg" ;;
     -version|--version)
-	echo "This is TIFF configure $Revision: 1.3 $"
+	echo "This is TIFF configure $Revision: 1.10 $"
 	exit 0
 	;;
     -help|--help)		usage; exit 0;;
@@ -164,6 +169,11 @@ do
 	;;
     esac
 done
+
+DIR_BIN=${EPREFIX}/bin		# destination for applications
+DIR_LIB=${EPREFIX}/lib		# destination for library
+DIR_INC=${PREFIX}/include		# destination for include files
+DIR_HTML=${PREFIX}/doc/libtiff		# destination for HTML files
 
 if [ -n "$ac_prev" ]; then
     bitch "configure: missing argument to --`echo $ac_prev | sed 's/_/-/g'`"
@@ -245,22 +255,13 @@ wrong thing, you can use the information captured here to aid in debugging.
 
 EOF
 
-if [ -r $SRCDIR/tiff.alpha ] ; then
-    VERSIONFILE=$SRCDIR/VERSION
-    ALPHAFILE=$SRCDIR/tiff.alpha
-else
-    VERSIONFILE=$SRCDIR/VERSION
-    ALPHAFILE=$SRCDIR/dist/tiff.alpha
-fi
+VERSIONFILE=$SRCDIR/VERSION
 DATE=`date`
 
-eval `cat $VERSIONFILE | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(.*\)/DIST_MAJOR=\1; DIST_MINOR=\2; DIST_TYPE=\3/'`
-DIST_ALPHA=`awk '{print $3}' $ALPHAFILE`
-VERSION="v${DIST_MAJOR}.${DIST_MINOR}${DIST_TYPE}"
-if [ $DIST_TYPE = beta ]; then
-    VERSION="${VERSION}${DIST_ALPHA}"
-fi
+eval `cat $VERSIONFILE |  sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)\(.*\)/DIST_MAJOR=\1; DIST_MINOR=\2; DIST_POINT=\3/'`
+VERSION="v${DIST_MAJOR}.${DIST_MINOR}.${DIST_POINT}"
 
+RELEASE=`cat $VERSIONFILE |  sed -e 's/[0-9 \.]//g'`
 Note()
 {
     echo "$@" 1>&4
@@ -268,9 +269,9 @@ Note()
 
 Note ""
 if [ $SRCDIR_IS_LIBTIFF = yes ] ; then
-  Note "Configuring TIFF Software (library only) $VERSION."
+  Note "Configuring TIFF Software (library only) $VERSION"
 else
-  Note "Configuring TIFF Software $VERSION."
+  Note "Configuring TIFF Software $VERSION"
 fi
 
 Note ""
@@ -728,6 +729,7 @@ EmitCPlusPlusPrologue()
     echo '/*'
     echo ' * Warning, this file was automatically created by the TIFF configure script'
     echo ' * VERSION:	' $VERSION
+    echo ' * RELEASE:   ' $RELEASE
     echo ' * DATE:	' $DATE
     echo ' * TARGET:	' $TARGET
     if [ $ISGCC = yes ]; then
@@ -1150,19 +1152,18 @@ if [ "$DSO" = auto ]; then
 	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
 	;;
     *-freebsd*)
-	DSOSUF=so.${DIST_MAJOR}.0
-	LIBCOPTS='-fpic -fPIC'
-	DSO=FREEBSD
-	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
+	DSOSUF=so.${DIST_MAJOR}
+	DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
+	LIBCOPTS='-fPIC'
+	DSOOPTS='-shared'
+	DSO=GNULD
 	;;
     *-linux*)
-	if [ -r /lib/libc.so.6 || -r /lib/libc.so.5 ]; then
-	    DSOSUF=so.${DIST_MAJOR}
-	    DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_ALPHA}
-	    LIBCOPTS='-fPIC'
-	    DSOOPTS='-shared'
-	    DSO=LINUX
-	fi
+	DSOSUF=so.${DIST_MAJOR}
+	DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_POINT}
+	LIBCOPTS='-fPIC'
+	DSOOPTS='-shared'
+	DSO=GNULD
 	;;
     *-osf3*|*-osf4*)
 	DSOSUF=so
@@ -1321,7 +1322,7 @@ if [ -z "${DIR_MAN-}" ]; then
     for i in $MANPATH; do
 	test -d $i && { DIR_MAN=$i; break; }
     done
-    test -z "$DIR_MAN" && DIR_MAN=/usr/local/man
+    test -z "$DIR_MAN" && DIR_MAN=${PREFIX}/man
 fi
 Note "Looks like manual pages go in $DIR_MAN."
 if [ -z "${MANSCHEME-}" ]; then
@@ -1701,7 +1702,6 @@ fi
 # NB: these should be sorted alphabetically
 cat>>confsed<<EOF
 s;@AR@;${AR};g
-s;@ALPHAFILE@;`relativize ${ALPHAFILE}`;g
 s;@AROPTS@;${AROPTS};g
 s;@CONFIGDIR@;${CONFIGDIR};g
 s;@CCOMPILER@;${CCOMPILER};g
@@ -1720,10 +1720,9 @@ s;@DIR_INC@;${DIR_INC};g
 s;@DIR_LIB@;${DIR_LIB};g
 s;@DIR_MAN@;${DIR_MAN};g
 s;@DIRS_LIBINC@;`relativize ${DIRS_LIBINC}`;g
-s;@DIST_ALPHA@;${DIST_ALPHA};g
+s;@DIST_POINT@;${DIST_POINT};g
 s;@DIST_MAJOR@;${DIST_MAJOR};g
 s;@DIST_MINOR@;${DIST_MINOR};g
-s;@DIST_TYPE@;${DIST_TYPE};g
 s;@DSO@;${DSO};g
 s;@DSOSUF@;${DSOSUF};g
 s;@DSOSUF_VERSION@;${DSOSUF_VERSION};g
@@ -1761,6 +1760,7 @@ s;@STRIP@;${STRIP};g
 s;@TARGET@;${TARGET};g
 s;@TIFFLIBREF@;${TIFFLIBREF};g
 s;@VERSION@;${VERSION};g
+s;@RELEASE@;${RELEASE};g
 s;@VERSIONFILE@;`relativize ${VERSIONFILE}`;g
 s;@WARNING@;Warning, this file was automatically created by the TIFF configure script;g
 EOF

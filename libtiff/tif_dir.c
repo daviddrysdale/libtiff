@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/libtiff/tif_dir.c,v 1.11 2000/03/03 15:15:57 warmerda Exp $ */
+/* $Header: /cvsroot/osrs/libtiff/libtiff/tif_dir.c,v 1.14 2000/10/17 03:23:36 warmerda Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -345,7 +345,7 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 		break;
 	case TIFFTAG_SAMPLEFORMAT:
 		v = va_arg(ap, int);
-		if (v < SAMPLEFORMAT_UINT || SAMPLEFORMAT_VOID < v)
+		if (v < SAMPLEFORMAT_UINT || SAMPLEFORMAT_COMPLEXIEEEFP < v)
 			goto badvalue;
 		td->td_sampleformat = (uint16) v;
 		break;
@@ -1041,6 +1041,14 @@ TIFFDefaultDirectory(TIFF* tif)
 	 * (i.e. TIFFSetField).
 	 */
 	tif->tif_flags &= ~TIFF_DIRTYDIRECT;
+
+        /*
+         * As per http://bugzilla.remotesensing.org/show_bug.cgi?id=19
+         * we clear the ISTILED flag when setting up a new directory.
+         * Should we also be clearing stuff like INSUBIFD?
+         */
+        tif->tif_flags &= ~TIFF_ISTILED;
+
 	return (1);
 }
 
