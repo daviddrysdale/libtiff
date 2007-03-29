@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: tif_overview.c,v 1.3 2000/04/18 22:48:31 warmerda Exp $
+ * $Id: tif_overview.c,v 1.6 2004/08/08 15:32:29 dron Exp $
  *
  * Project:  TIFF Overview Builder
  * Purpose:  Library function for building overviews in a TIFF file.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  * Notes:
  *  o Currently only images with bits_per_sample of a multiple of eight
@@ -43,26 +43,15 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  ******************************************************************************
- *
- * $Log: tif_overview.c,v $
- * Revision 1.3  2000/04/18 22:48:31  warmerda
- * Added support for averaging resampling
- *
- * Revision 1.2  2000/01/28 15:36:38  warmerda
- * pass TIFF handle instead of filename to overview builder
- *
- * Revision 1.1  2000/01/28 15:04:03  warmerda
- * New
- *
  */
 
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "tiffio.h"
 #include "tif_ovrcache.h"
-
 
 #ifndef FALSE
 #  define FALSE 0
@@ -84,9 +73,8 @@ void TIFFBuildOverviews( TIFF *, int, int *, int, const char *,
 /*      Returns offset of newly created overview directory, but the     */
 /*      current directory is reset to be the one in used when this      */
 /*      function is called.                                             */
-/********************************* ***************************************/
+/************************************************************************/
 
-static
 uint32 TIFF_WriteOverview( TIFF *hTIFF, int nXSize, int nYSize,
                            int nBitsPerPixel, int nSamples, 
                            int nBlockXSize, int nBlockYSize,
@@ -142,9 +130,11 @@ uint32 TIFF_WriteOverview( TIFF *hTIFF, int nXSize, int nYSize,
 /* -------------------------------------------------------------------- */
 /*      Write directory, and return byte offset.                        */
 /* -------------------------------------------------------------------- */
-    TIFFWriteCheck( hTIFF, bTiled, "TIFFBuildOverviews" );
+    if( TIFFWriteCheck( hTIFF, bTiled, "TIFFBuildOverviews" ) == 0 )
+        return 0;
+
     TIFFWriteDirectory( hTIFF );
-    TIFFSetDirectory( hTIFF, TIFFNumberOfDirectories(hTIFF)-1 );
+    TIFFSetDirectory( hTIFF, (tdir_t) (TIFFNumberOfDirectories(hTIFF)-1) );
 
     nOffset = TIFFCurrentDirOffset( hTIFF );
 
@@ -389,14 +379,15 @@ void TIFF_ProcessFullResBlock( TIFF *hTIFF, int nPlanarConfig,
             {
                 TIFFReadEncodedTile( hTIFF,
                                      TIFFComputeTile(hTIFF, nSXOff, nSYOff,
-                                                     0, iSample ),
+                                                     0, (tsample_t)iSample ),
                                      pabySrcTile,
                                      TIFFTileSize(hTIFF));
             }
             else
             {
                 TIFFReadEncodedStrip( hTIFF,
-                                      TIFFComputeStrip(hTIFF, nSYOff, iSample),
+                                      TIFFComputeStrip(hTIFF, nSYOff,
+                                                       (tsample_t) iSample),
                                       pabySrcTile,
                                       TIFFStripSize(hTIFF) );
             }

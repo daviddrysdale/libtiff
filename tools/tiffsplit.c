@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffsplit.c,v 1.3 2003/07/26 03:46:08 warmerda Exp $ */
+/* $Id: tiffsplit.c,v 1.9 2004/06/05 08:11:26 dron Exp $ */
 
 /*
  * Copyright (c) 1992-1997 Sam Leffler
@@ -30,7 +30,6 @@
 
 #include "tiffio.h"
 
-#define	streq(a,b)	(strcmp(a,b) == 0)
 #define	CopyField(tag, v) \
     if (TIFFGetField(in, tag, &v)) TIFFSetField(out, tag, v)
 #define	CopyField2(tag, v1, v2) \
@@ -63,7 +62,7 @@ main(int argc, char* argv[])
 			newfilename();
 			strcpy(path, fname);
 			strcat(path, ".tif");
-			out = TIFFOpen(path, "w");
+			out = TIFFOpen(path, TIFFIsBigEndian(in)?"wb":"wl");
 			if (out == NULL)
 				return (-2);
 			if (!tiffcp(in, out))
@@ -106,20 +105,30 @@ newfilename(void)
 	}
 	if (fnum % 676 == 0) {
 		if (fnum != 0) {
-			//advance to next letter every 676 pages
-			//condition for 'z'++ will be covered above
+			/*
+                         * advance to next letter every 676 pages
+			 * condition for 'z'++ will be covered above
+                         */
 			fpnt[0]++;
 		} else {
-			//set to 'a' if we are on the very first file
+			/*
+                         * set to 'a' if we are on the very first file
+                         */
 			fpnt[0] = 'a';
 		}
-		//set the value of the last turning point
+		/*
+                 * set the value of the last turning point
+                 */
 		lastTurn = fnum;
 	}
-	//start from 0 every 676 times (provided by lastTurn)
-	//this keeps us within a-z boundaries
+	/* 
+         * start from 0 every 676 times (provided by lastTurn)
+         * this keeps us within a-z boundaries
+         */
 	fpnt[1] = (fnum - lastTurn) / 26 + 'a';
-	//cycle last letter every file, from a-z, then repeat
+	/* 
+         * cycle last letter every file, from a-z, then repeat
+         */
 	fpnt[2] = fnum % 26 + 'a';
 	fnum++;
 }
@@ -127,7 +136,7 @@ newfilename(void)
 static int
 tiffcp(TIFF* in, TIFF* out)
 {
-	short bitspersample, samplesperpixel, shortv, *shortav;
+	uint16 bitspersample, samplesperpixel, compression, shortv, *shortav;
 	uint32 w, l;
 	float floatv;
 	char *stringv;
@@ -139,13 +148,19 @@ tiffcp(TIFF* in, TIFF* out)
 	CopyField(TIFFTAG_IMAGEWIDTH, w);
 	CopyField(TIFFTAG_IMAGELENGTH, l);
 	CopyField(TIFFTAG_BITSPERSAMPLE, bitspersample);
-	CopyField(TIFFTAG_COMPRESSION, shortv);
+	CopyField(TIFFTAG_SAMPLESPERPIXEL, samplesperpixel);
+	CopyField(TIFFTAG_COMPRESSION, compression);
+	if (compression == COMPRESSION_JPEG) {
+		uint16 count;
+		void *table;
+		TIFFGetField(in, TIFFTAG_JPEGTABLES, &count, &table);
+		TIFFSetField(out, TIFFTAG_JPEGTABLES, count, table);
+	}
+        CopyField(TIFFTAG_PHOTOMETRIC, shortv);
 	CopyField(TIFFTAG_PREDICTOR, shortv);
-	CopyField(TIFFTAG_PHOTOMETRIC, shortv);
 	CopyField(TIFFTAG_THRESHHOLDING, shortv);
 	CopyField(TIFFTAG_FILLORDER, shortv);
 	CopyField(TIFFTAG_ORIENTATION, shortv);
-	CopyField(TIFFTAG_SAMPLESPERPIXEL, samplesperpixel);
 	CopyField(TIFFTAG_MINSAMPLEVALUE, shortv);
 	CopyField(TIFFTAG_MAXSAMPLEVALUE, shortv);
 	CopyField(TIFFTAG_XRESOLUTION, floatv);
@@ -194,7 +209,7 @@ cpStrips(TIFF* in, TIFF* out)
 
 		TIFFGetField(in, TIFFTAG_STRIPBYTECOUNTS, &bytecounts);
 		for (s = 0; s < ns; s++) {
-			if (bytecounts[s] > bufsize) {
+			if (bytecounts[s] > (uint32)bufsize) {
 				buf = (unsigned char *)_TIFFrealloc(buf, bytecounts[s]);
 				if (!buf)
 					return (0);
@@ -224,7 +239,7 @@ cpTiles(TIFF* in, TIFF* out)
 
 		TIFFGetField(in, TIFFTAG_TILEBYTECOUNTS, &bytecounts);
 		for (t = 0; t < nt; t++) {
-			if (bytecounts[t] > bufsize) {
+			if (bytecounts[t] > (uint32) bufsize) {
 				buf = (unsigned char *)_TIFFrealloc(buf, bytecounts[t]);
 				if (!buf)
 					return (0);

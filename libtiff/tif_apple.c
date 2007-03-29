@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/libtiff/tif_apple.c,v 1.2 2000/12/21 14:32:43 warmerda Exp $ */
+/* $Header: /cvs/maptools/cvsroot/libtiff/libtiff/tif_apple.c,v 1.2 2000/12/21 14:32:43 warmerda Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler

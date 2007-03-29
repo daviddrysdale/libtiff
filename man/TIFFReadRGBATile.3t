@@ -1,4 +1,4 @@
-.\" $Header: /cvsroot/osrs/libtiff/man/TIFFReadRGBATile.3t,v 1.2 2003/12/03 15:39:34 dron Exp $
+.\" $Header: /cvs/maptools/cvsroot/libtiff/man/TIFFReadRGBATile.3t,v 1.2 2003/12/03 15:39:34 dron Exp $
 .\"
 .\" Copyright (c) 1991-1997 Sam Leffler
 .\" Copyright (c) 1991-1997 Silicon Graphics, Inc.

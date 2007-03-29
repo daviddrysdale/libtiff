@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/contrib/pds/tif_pdsdirwrite.c,v 1.2 2003/11/17 15:09:39 dron Exp $ */
+/* $Header: /cvs/maptools/cvsroot/libtiff/contrib/pds/tif_pdsdirwrite.c,v 1.2 2003/11/17 15:09:39 dron Exp $ */
 
 /* When writing data to TIFF files, it is often useful to store application-
    specific data in a private TIFF directory so that the tags don't need to

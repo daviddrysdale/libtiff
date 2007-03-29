@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffdither.c,v 1.6 2003/05/05 19:13:42 dron Exp $ */
+/* $Id: tiffdither.c,v 1.8 2004/09/03 08:10:53 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -24,9 +24,15 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "tiffio.h"
 
@@ -135,7 +141,7 @@ static	uint32 group3options = 0;
 static void
 processG3Options(char* cp)
 {
-	if (cp = strchr(cp, ':')) {
+	if ((cp = strchr(cp, ':'))) {
 		do {
 			cp++;
 			if (strneq(cp, "1d", 2))
@@ -146,7 +152,7 @@ processG3Options(char* cp)
 				group3options |= GROUP3OPT_FILLBITS;
 			else
 				usage();
-		} while (cp = strchr(cp, ':'));
+		} while ((cp = strchr(cp, ':')));
 	}
 }
 
@@ -285,7 +291,6 @@ char* stuff[] = {
 " -f lsb2msb	force lsb-to-msb FillOrder for output",
 " -f msb2lsb	force msb-to-lsb FillOrder for output",
 " -c lzw[:opts]	compress output with Lempel-Ziv & Welch encoding",
-"               (no longer supported by default due to Unisys patent enforcement)", 
 " -c zip[:opts]	compress output with deflate encoding",
 " -c packbits	compress output with packbits encoding",
 " -c g3[:opts]	compress output with CCITT Group 3 encoding",
@@ -316,3 +321,5 @@ usage(void)
 		fprintf(stderr, "%s\n", stuff[i]);
 	exit(-1);
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */

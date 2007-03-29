@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/libtiff/tif_color.c,v 1.7 2003/12/24 22:02:04 dron Exp $ */
+/* $Header: /cvs/maptools/cvsroot/libtiff/libtiff/tif_color.c,v 1.7 2003/12/24 22:02:04 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler

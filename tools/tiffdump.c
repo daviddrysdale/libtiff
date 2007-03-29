@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffdump.c,v 1.3 2003/09/02 13:28:09 warmerda Exp $ */
+/* $Id: tiffdump.c,v 1.7 2004/09/03 08:16:01 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -24,41 +24,33 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(VMS)
-#include <unixio.h>
-#include <file.h>
-#elif defined(_WINDOWS)
-#include <io.h>
-#define	off_t	toff_t
-#include "tiffio.h"
-#include <fcntl.h>
-#elif defined(applec)
-#define open _open_ /* to avoid conflicts */
-#include <fcntl.h>
-#undef open
-int  open(const char*, int, int);
-typedef unsigned int off_t;
-#else /* !VMS && !_WINDOWS && !applec */
-#ifdef unix
-#include <sys/types.h>
-#endif
-#include <unistd.h>
-#include <fcntl.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
 #endif
 
-#if defined(MSDOS)
-#include <malloc.h>
+#if HAVE_FCNTL_H
+# include <fcntl.h>
 #endif
+
+#if HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+
+#if HAVE_IO_H
+# include <io.h>
+#endif
+
+#include "tiffio.h"
 
 #ifndef O_BINARY
 #define	O_BINARY	0
 #endif
-
-#include "tiffio.h"
 
 char*	appname;
 char*	curfile;
@@ -66,7 +58,7 @@ int	swabflag;
 int	bigendian;
 int	typeshift[13];		/* data type shift counts */
 long	typemask[13];		/* data type masks */
-int	maxitems = 24;		/* maximum indirect data items to print */
+uint32	maxitems = 24;		/* maximum indirect data items to print */
 
 char*	bytefmt = "%s%#02x";		/* BYTE */
 char*	sbytefmt = "%s%d";		/* SBYTE */
@@ -79,7 +71,7 @@ char*	srationalfmt = "%s%g";		/* SRATIONAL */
 char*	floatfmt = "%s%g";		/* FLOAT */
 char*	doublefmt = "%s%g";		/* DOUBLE */
 
-static	void dump(int, uint32);
+static	void dump(int, off_t);
 extern	int optind;
 extern	char* optarg;
 
@@ -182,13 +174,13 @@ InitByteOrder(int magic)
 	}
 }
 
-static	uint32 ReadDirectory(int, unsigned, uint32);
+static	off_t ReadDirectory(int, unsigned, off_t);
 static	void ReadError(char*);
 static	void Error(const char*, ...);
 static	void Fatal(const char*, ...);
 
 static void
-dump(int fd, uint32 diroff)
+dump(int fd, off_t diroff)
 {
 	unsigned i;
 
@@ -259,11 +251,11 @@ static	void PrintLong(FILE*, const char*, TIFFDirEntry*);
  * and convert it to the internal format.
  * We read directories sequentially.
  */
-static uint32
-ReadDirectory(int fd, unsigned ix, uint32 off)
+static off_t
+ReadDirectory(int fd, unsigned ix, off_t off)
 {
 	register TIFFDirEntry *dp;
-	register int n;
+	register unsigned int n;
 	TIFFDirEntry *dir = 0;
 	uint16 dircount;
 	int space;
@@ -299,8 +291,7 @@ ReadDirectory(int fd, unsigned ix, uint32 off)
 	if (swabflag)
 		TIFFSwabLong(&nextdiroff);
 	printf("Directory %u: offset %lu (%#lx) next %lu (%#lx)\n", ix,
-	    (unsigned long) off, (unsigned long) off,
-	    (unsigned long) nextdiroff, (unsigned long) nextdiroff);
+	    (unsigned long) off, (unsigned long) off, nextdiroff, nextdiroff);
 	for (dp = dir, n = dircount; n > 0; n--, dp++) {
 		if (swabflag) {
 			TIFFSwabArrayOfShort(&dp->tdir_tag, 2);
@@ -351,7 +342,7 @@ ReadDirectory(int fd, unsigned ix, uint32 off)
 		} else {
 			unsigned char *data = (unsigned char *)_TIFFmalloc(space);
 			if (data) {
-				if (TIFFFetchData(fd, dp, data))
+				if (TIFFFetchData(fd, dp, data)) {
 					if (dp->tdir_count > maxitems) {
 						PrintData(stdout, dp->tdir_type,
 						    maxitems, data);
@@ -359,6 +350,7 @@ ReadDirectory(int fd, unsigned ix, uint32 off)
 					} else
 						PrintData(stdout, dp->tdir_type,
 						    dp->tdir_count, data);
+                                }
 				_TIFFfree(data);
 			} else
 				Error("No space for data for tag %u",
@@ -689,7 +681,7 @@ TIFFFetchData(int fd, TIFFDirEntry* dir, void* cp)
 
 	w = (dir->tdir_type < NWIDTHS ? datawidth[dir->tdir_type] : 0);
 	cc = dir->tdir_count * w;
-	if (lseek(fd, (off_t) dir->tdir_offset, 0) == dir->tdir_offset &&
+	if (lseek(fd, (off_t)dir->tdir_offset, 0) == (off_t)dir->tdir_offset &&
 	    read(fd, cp, cc) == cc) {
 		if (swabflag) {
 			switch (dir->tdir_type) {
@@ -754,3 +746,5 @@ Fatal(const char* fmt, ...)
 	va_end(ap);
 	exit(-1);
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */

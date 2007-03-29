@@ -1,8 +1,56 @@
-/* $Id: tiff2pdf.c,v 1.4 2003/12/01 10:51:39 rossf Exp $
+/* $Id: tiff2pdf.c,v 1.18 2004/10/10 11:38:34 dron Exp $
  *
  * tiff2pdf - converts a TIFF image to a PDF document
  *
  * $Log: tiff2pdf.c,v $
+ * Revision 1.18  2004/10/10 11:38:34  dron
+ * Move _TIFFmemset() behind the pointer check in t2p_init().
+ *
+ * Revision 1.17  2004/10/09 14:15:07  dron
+ * Fixed TransferFunction tag handling reported by Ross A. Finlayson.
+ *
+ * Revision 1.16  2004/09/10 11:50:57  dron
+ * Fixed reading TransferFunction tag as per bug
+ * http://bugzilla.remotesensing.org/show_bug.cgi?id=590
+ *
+ * Revision 1.15  2004/08/25 18:34:55  dron
+ * Work out getopt problems.
+ *
+ * Revision 1.14  2004/08/25 13:43:14  dron
+ * Initialize arrays properly.
+ *
+ * Revision 1.13  2004/08/24 07:48:36  dron
+ * More fixes for bug http://bugzilla.remotesensing.org/show_bug.cgi?id=590
+ * from Ross Finlayson.
+ *
+ * Revision 1.12  2004/08/23 12:00:30  dron
+ * Fixed a bunch of problems as per bug
+ * http://bugzilla.remotesensing.org/show_bug.cgi?id=590
+ *
+ * Revision 1.11  2004/08/21 08:09:49  dron
+ * More fixes from Ross.
+ *
+ * Revision 1.10  2004/08/20 19:23:25  dron
+ * Applied patch from Ross Finlayson that checks that the input file has
+ * compression, photometric interpretation, etcetra, tags or if not than a more
+ * descriptive error is returned.
+ *
+ * Revision 1.9  2004/06/04 13:46:25  dron
+ * Avoid warnings.
+ *
+ * Revision 1.8  2004/05/26 09:24:07  dron
+ * Get rid of __T() macro; avoid warnings.
+ *
+ * Revision 1.7  2004/04/20 14:54:05  dron
+ * Fixed problem with unaligned access as per bug
+ * http://bugzilla.remotesensing.org/show_bug.cgi?id=555
+ *
+ * Revision 1.6  2004/04/20 14:24:31  dron
+ * Obsoleted configuration switches removed.
+ *
+ * Revision 1.5  2004/01/26 17:00:56  dron
+ * Get rid of C++ style comments.
+ *
  * Revision 1.4  2003/12/01 10:51:39  rossf
  * Some bugs fixed.
  *
@@ -37,19 +85,19 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-#ifdef __STDC__
-#include <unistd.h> /* getopt, unlink */
-#else
-#ifndef _WIN32
-#include <getopt.h> /* getopt in getopt.h, unlink in stdio.h */
-#endif
-#endif
+
 #include "tiffiop.h"
+
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -72,18 +120,12 @@ typedef enum{
 	T2P_CS_BILEVEL=0x01, /* Bilevel, black and white */
 	T2P_CS_GRAY=0x02, /* Single channel */
 	T2P_CS_RGB=0x04, /* Three channel tristimulus RGB */
-#ifdef CMYK_SUPPORT
 	T2P_CS_CMYK=0x08, /* Four channel CMYK print inkset */
-#endif
 	T2P_CS_LAB=0x10, /* Three channel L*a*b* color space */
 	T2P_CS_PALETTE=0x1000 /* One of the above with a color map */
-#ifdef COLORIMETRY_SUPPORT
 	, T2P_CS_CALGRAY=0x20 /* Calibrated single channel */
 	, T2P_CS_CALRGB=0x40 /* Calibrated three channel tristimulus RGB */
-#endif
-#ifdef ICC_SUPPORT
 	, T2P_CS_ICCBASED=0x80 /* ICC profile color specification */
-#endif
 } t2p_cs_t;
 
 /* This type is of PDF compression types.  */
@@ -234,18 +276,14 @@ typedef struct {
 	uint32 pdf_ojpegdatalength;
 	uint32 pdf_ojpegiflength;
 #endif
-#ifdef COLORIMETRY_SUPPORT
 	float tiff_whitechromaticities[2];
 	float tiff_primarychromaticities[6];
 	float tiff_referenceblackwhite[2];
 	float* tiff_transferfunction[3];
 	uint16 tiff_transferfunctioncount;
-#endif
-#ifdef ICC_SUPPORT
 	uint32 pdf_icccs;
 	uint32 tiff_iccprofilelength;
 	tdata_t tiff_iccprofile;
-#endif
 } T2P;
 
 /* These functions are called by main. */
@@ -321,17 +359,13 @@ void t2p_compose_pdf_page_orient_flip(T2P_BOX*, uint16);
 tsize_t t2p_write_pdf_page_content(T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_stream_dict(ttile_t, T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_cs(T2P*, TIFF*);
-#ifdef COLORIMETRY_SUPPORT
 tsize_t t2p_write_pdf_transfer(T2P*, TIFF*);
 tsize_t t2p_write_pdf_transfer_dict(T2P*, TIFF*, uint16);
 tsize_t t2p_write_pdf_transfer_stream(T2P*, TIFF*, uint16);
 tsize_t t2p_write_pdf_xobject_calcs(T2P*, TIFF*);
-#endif
-#ifdef ICC_SUPPORT
 tsize_t t2p_write_pdf_xobject_icccs(T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_icccs_dict(T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_icccs_stream(T2P*, TIFF*);
-#endif
 tsize_t t2p_write_pdf_xobject_cs_stream(T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_decode(T2P*, TIFF*);
 tsize_t t2p_write_pdf_xobject_stream_filter(ttile_t, T2P*, TIFF*);
@@ -534,21 +568,21 @@ int main(int argc, char** argv){
 				break;
 			case 'x': 
 				t2p->pdf_defaultxres = 
-					atof(optarg) / (t2p->pdf_centimeters?2.54:1.0);
+					(float)atof(optarg) / (t2p->pdf_centimeters?2.54F:1.0F);
 				break;
 			case 'y': 
 				t2p->pdf_defaultyres = 
-					atof(optarg) / (t2p->pdf_centimeters?2.54:1.0);
+					(float)atof(optarg) / (t2p->pdf_centimeters?2.54F:1.0F);
 				break;
 			case 'w': 
 				t2p->pdf_overridepagesize=1;
 				t2p->pdf_defaultpagewidth = 
-					(atof(optarg) * 72) / (t2p->pdf_centimeters?2.54:1.0);
+					((float)atof(optarg) * 72.0F) / (t2p->pdf_centimeters?2.54F:1.0F);
 				break;
 			case 'l': 
 				t2p->pdf_overridepagesize=1;
 				t2p->pdf_defaultpagelength = 
-					(atof(optarg) * 72) / (t2p->pdf_centimeters?2.54:1.0);
+					((float)atof(optarg) * 72.0F) / (t2p->pdf_centimeters?2.54F:1.0F);
 				break;
 			case 'r': 
 				if(optarg[0]=='o'){
@@ -695,7 +729,7 @@ int main(int argc, char** argv){
 			TCHAR temppath[MAX_PATH];
 			TCHAR tempfile[MAX_PATH];
 			GetTempPath((DWORD)MAX_PATH, (LPTSTR)temppath);
-			GetTempFileName((LPCTSTR)temppath, (LPTSTR) __T("t2p"), 0, (LPTSTR)tempfile);
+			GetTempFileName((LPCTSTR)temppath, (LPTSTR) "t2p", 0, (LPTSTR)tempfile);
 			output = TIFFFdOpen( (int)CreateFile(
 				(LPCTSTR)tempfile, 
 				GENERIC_WRITE, 
@@ -881,7 +915,6 @@ int tiff2pdf_match_paper_size(float* width, float* length, char* papersize){
 T2P* t2p_init(){
 
 	T2P* t2p = (T2P*) _TIFFmalloc(sizeof(T2P));
-	_TIFFmemset(t2p, 0x00, sizeof(T2P));
 	if(t2p==NULL){
 		TIFFError(
 			TIFF2PDF_MODULE, 
@@ -889,6 +922,7 @@ T2P* t2p_init(){
 			sizeof(T2P));
 		return( (T2P*) NULL );
 	}
+	_TIFFmemset(t2p, 0x00, sizeof(T2P));
 	t2p->pdf_majorversion=1;
 	t2p->pdf_minorversion=1;
 	t2p->pdf_defaultxres=300.0;
@@ -959,8 +993,8 @@ void t2p_free(T2P* t2p){
 }
 
 /*
-	This function validates the values of a T2P context struct pointer before calling 
-	t2p_write_pdf with it.
+	This function validates the values of a T2P context struct pointer
+        before calling t2p_write_pdf with it.
 */
 
 void t2p_validate(T2P* t2p){
@@ -1007,9 +1041,10 @@ void t2p_validate(T2P* t2p){
 
 
 /*
-	This function scans the input TIFF file for pages.  It attempts to determine which IFD's of 
-	the TIFF file contain image document pages.  For each, it gathers some information that has 
-	to do with the output of the PDF document as a whole.  
+	This function scans the input TIFF file for pages.  It attempts
+        to determine which IFD's of the TIFF file contain image document
+        pages.  For each, it gathers some information that has to do
+        with the output of the PDF document as a whole.  
 */
 
 void t2p_read_tiff_init(T2P* t2p, TIFF* input){
@@ -1025,7 +1060,7 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 	if(t2p->tiff_pages==NULL){
 		TIFFError(
 			TIFF2PDF_MODULE, 
-			"Can't allocate %u bytes of memory for t2p_read_tiff_init, %s", 
+			"Can't allocate %u bytes of memory for tiff_pages array, %s", 
 			directorycount * sizeof(T2P_PAGE), 
 			TIFFFileName(input));
 		t2p->t2p_error = T2P_ERR_ERROR;
@@ -1033,10 +1068,10 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 	}
 	_TIFFmemset( t2p->tiff_pages, 0x00, directorycount * sizeof(T2P_PAGE));
 	t2p->tiff_tiles = (T2P_TILES*) _TIFFmalloc(directorycount * sizeof(T2P_TILES));
-	if(t2p->tiff_pages==NULL){
+	if(t2p->tiff_tiles==NULL){
 		TIFFError(
 			TIFF2PDF_MODULE, 
-			"Can't allocate %u bytes of memory for t2p_read_tiff_init, %s", 
+			"Can't allocate %u bytes of memory for tiff_tiles array, %s", 
 			directorycount * sizeof(T2P_TILES), 
 			TIFFFileName(input));
 		t2p->t2p_error = T2P_ERR_ERROR;
@@ -1044,6 +1079,8 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 	}
 	_TIFFmemset( t2p->tiff_tiles, 0x00, directorycount * sizeof(T2P_TILES));
 	for(i=0;i<directorycount;i++){
+		uint32 subfiletype = 0;
+		
 		if(!TIFFSetDirectory(input, i)){
 			TIFFError(
 				TIFF2PDF_MODULE, 
@@ -1052,7 +1089,7 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 				TIFFFileName(input));
 			return;
 		}
-		if(TIFFGetField(input, TIFFTAG_PAGENUMBER, &pagen, &paged)==2){
+		if(TIFFGetField(input, TIFFTAG_PAGENUMBER, &pagen, &paged)){
 			if((pagen>paged) && (paged != 0)){
 				t2p->tiff_pages[t2p->tiff_pagecount].page_number = 
 					paged;
@@ -1062,17 +1099,18 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 			}
 			goto ispage2;
 		}
-		if(TIFFGetField(input, TIFFTAG_SUBFILETYPE, &xuint16)){
-			if ( ((xuint16 & FILETYPE_PAGE) != 0) || (xuint16 == 0)){
+		if(TIFFGetField(input, TIFFTAG_SUBFILETYPE, &subfiletype)){
+			if ( ((subfiletype & FILETYPE_PAGE) != 0)
+                             || (subfiletype == 0)){
 				goto ispage;
 			} else {
 				goto isnotpage;
 			}
 		}
-		if(TIFFGetField(input, TIFFTAG_OSUBFILETYPE, &xuint16)){
-			if ((xuint16==OFILETYPE_IMAGE) 
-				|| (xuint16==OFILETYPE_PAGE)
-				|| (xuint16==0) ){
+		if(TIFFGetField(input, TIFFTAG_OSUBFILETYPE, &subfiletype)){
+			if ((subfiletype == OFILETYPE_IMAGE) 
+				|| (subfiletype == OFILETYPE_PAGE)
+				|| (subfiletype == 0) ){
 				goto ispage;
 			} else {
 				goto isnotpage;
@@ -1091,45 +1129,48 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 		(void)0;
 	}
 	
-	qsort( (void*) t2p->tiff_pages, t2p->tiff_pagecount, sizeof(T2P_PAGE), t2p_cmp_t2p_page);
+	qsort((void*) t2p->tiff_pages, t2p->tiff_pagecount,
+              sizeof(T2P_PAGE), t2p_cmp_t2p_page);
 
 	for(i=0;i<t2p->tiff_pagecount;i++){
 		t2p->pdf_xrefcount += 5;
 		TIFFSetDirectory(input, t2p->tiff_pages[i].page_directory );
-		if( (TIFFGetField(input, TIFFTAG_PHOTOMETRIC, &xuint16) && (xuint16==PHOTOMETRIC_PALETTE))
-			|| TIFFGetField(input, TIFFTAG_INDEXED, &xuint16) ){
+		if((TIFFGetField(input, TIFFTAG_PHOTOMETRIC, &xuint16)
+                    && (xuint16==PHOTOMETRIC_PALETTE))
+		   || TIFFGetField(input, TIFFTAG_INDEXED, &xuint16)) {
 			t2p->tiff_pages[i].page_extra++;
 			t2p->pdf_xrefcount++;
 		}
 #ifdef ZIP_SUPPORT
-		TIFFGetField(input, TIFFTAG_COMPRESSION, &xuint16);
-		if( (xuint16== COMPRESSION_DEFLATE ||
-			xuint16== COMPRESSION_ADOBE_DEFLATE) && 
-			((t2p->tiff_pages[t2p->tiff_pagecount].page_tilecount != 0) 
-			|| TIFFNumberOfStrips(input)==1) &&
-			(t2p->pdf_nopassthrough==0)	){
-			if(t2p->pdf_minorversion<2){t2p->pdf_minorversion=2;}
-		}
+		if (TIFFGetField(input, TIFFTAG_COMPRESSION, &xuint16)) {
+                        if( (xuint16== COMPRESSION_DEFLATE ||
+                             xuint16== COMPRESSION_ADOBE_DEFLATE) && 
+                            ((t2p->tiff_pages[i].page_tilecount != 0) 
+                             || TIFFNumberOfStrips(input)==1) &&
+                            (t2p->pdf_nopassthrough==0)	){
+                                if(t2p->pdf_minorversion<2){t2p->pdf_minorversion=2;}
+                        }
+                }
 #endif
-#ifdef COLORIMETRY_SUPPORT
-		t2p->tiff_transferfunctioncount=TIFFGetField(
-			input, 
-			TIFFTAG_TRANSFERFUNCTION, 
-			&(t2p->tiff_transferfunction[0]), 
-			&(t2p->tiff_transferfunction[1]), 
-			&(t2p->tiff_transferfunction[2]));
-		if(t2p->tiff_transferfunctioncount==1){
-			t2p->tiff_pages[i].page_extra+=2;
-			t2p->pdf_xrefcount+=2;
-			if(t2p->pdf_minorversion<2){t2p->pdf_minorversion=2;}
+		if (TIFFGetField(input, TIFFTAG_TRANSFERFUNCTION,
+                                 &(t2p->tiff_transferfunction[0]),
+                                 &(t2p->tiff_transferfunction[1]),
+                                 &(t2p->tiff_transferfunction[2]))) {
+			if(t2p->tiff_transferfunction[1] !=
+			   t2p->tiff_transferfunction[0]) {
+				t2p->tiff_transferfunctioncount = 3;
+				t2p->tiff_pages[i].page_extra += 4;
+				t2p->pdf_xrefcount += 4;
+			} else {
+				t2p->tiff_transferfunctioncount = 1;
+				t2p->tiff_pages[i].page_extra += 2;
+				t2p->pdf_xrefcount += 2;
+			}
+			if(t2p->pdf_minorversion < 2)
+				t2p->pdf_minorversion = 2;
+                } else {
+			t2p->tiff_transferfunctioncount=0;
 		}
-		if(t2p->tiff_transferfunctioncount==3){
-			t2p->tiff_pages[i].page_extra+=4;
-			t2p->pdf_xrefcount+=4;
-			if(t2p->pdf_minorversion<2){t2p->pdf_minorversion=2;}
-		}
-#endif
-#ifdef ICC_SUPPORT
 		if( TIFFGetField(
 			input, 
 			TIFFTAG_ICCPROFILE, 
@@ -1139,7 +1180,6 @@ void t2p_read_tiff_init(T2P* t2p, TIFF* input){
 			t2p->pdf_xrefcount++;
 			if(t2p->pdf_minorversion<3){t2p->pdf_minorversion=3;}
 		}
-#endif
 		t2p->tiff_tiles[i].tiles_tilecount=
 			t2p->tiff_pages[i].page_tilecount;
 		if( (TIFFGetField(input, TIFFTAG_PLANARCONFIG, &xuint16) != 0)
@@ -1185,17 +1225,15 @@ int t2p_cmp_t2p_page(const void* e1, const void* e2){
 }
 
 /*
-	This function sets the input directory to the directory of a given page and determines 
-	information about the image.  
+	This function sets the input directory to the directory of a given
+	page and determines information about the image.  It checks
+	the image characteristics to determine if it is possible to convert
+	the image data into a page of PDF output, setting values of the T2P
+	struct for this page.  It determines what color space is used in
+	the output PDF to represent the image.
 	
-	It checks the image characteristics to determine if it is possible to convert the image 
-	data into a page of PDF output, setting values of the T2P struct for this page.
-	
-	It determines what color space is used in the output PDF to represent the image.
-	
-	It determines if the image can be converted as raw data without requiring transcoding of 
-	the image data.
-	
+	It determines if the image can be converted as raw data without
+	requiring transcoding of the image data.
 */
 
 void t2p_read_tiff_data(T2P* t2p, TIFF* input){
@@ -1207,12 +1245,12 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 	uint16* a;
 	uint16 xuint16;
 	uint16* xuint16p;
-#ifdef COLORIMETRY_SUPPORT
 	float* xfloatp;
-#endif
 
 	t2p->pdf_transcode = T2P_TRANSCODE_ENCODE;
 	t2p->pdf_sample = T2P_SAMPLE_NOTHING;
+        t2p->pdf_switchdecode = t2p->pdf_colorspace_invert;
+        
 	
 	TIFFSetDirectory(input, t2p->tiff_pages[t2p->pdf_page].page_directory);
 
@@ -1236,8 +1274,16 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 		return;
 	}
 
-	TIFFGetField(input, TIFFTAG_COMPRESSION, &(t2p->tiff_compression));
-	if( TIFFIsCODECConfigured(t2p->tiff_compression) == 0){
+        if(TIFFGetField(input, TIFFTAG_COMPRESSION, &(t2p->tiff_compression)) == 0){
+                TIFFError(
+                        TIFF2PDF_MODULE, 
+                        "No support for %s with no compression tag", 
+                        TIFFFileName(input)     );
+                t2p->t2p_error = T2P_ERR_ERROR;
+                return;
+
+        }
+        if( TIFFIsCODECConfigured(t2p->tiff_compression) == 0){
 		TIFFError(
 			TIFF2PDF_MODULE, 
 			"No support for %s with compression type %u:  not configured", 
@@ -1309,21 +1355,30 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 		}
 	}
 	
-	TIFFGetField(input, TIFFTAG_FILLORDER, &(t2p->tiff_fillorder));
+	TIFFGetFieldDefaulted(input, TIFFTAG_FILLORDER, &(t2p->tiff_fillorder));
 	
-	TIFFGetField(input, TIFFTAG_PHOTOMETRIC, &(t2p->tiff_photometric));
+        if(TIFFGetField(input, TIFFTAG_PHOTOMETRIC, &(t2p->tiff_photometric)) == 0){
+                TIFFError(
+                        TIFF2PDF_MODULE, 
+                        "No support for %s with no photometric interpretation tag", 
+                        TIFFFileName(input)     );
+                t2p->t2p_error = T2P_ERR_ERROR;
+                return;
+
+        }
+        
 	switch(t2p->tiff_photometric){
 		case PHOTOMETRIC_MINISWHITE:
 		case PHOTOMETRIC_MINISBLACK: 
 			if (t2p->tiff_bitspersample==1){
 				t2p->pdf_colorspace=T2P_CS_BILEVEL;
 				if(t2p->tiff_photometric==PHOTOMETRIC_MINISWHITE){
-					t2p->pdf_switchdecode=1;
+					t2p->pdf_switchdecode ^= 1;
 				}
 			} else {
 				t2p->pdf_colorspace=T2P_CS_GRAY;
 				if(t2p->tiff_photometric==PHOTOMETRIC_MINISWHITE){
-					t2p->pdf_switchdecode=1;
+					t2p->pdf_switchdecode ^= 1;
 				} 
 			}
 			break;
@@ -1356,7 +1411,7 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 							break;
 					}
 					t2p->pdf_colorspace=T2P_CS_CMYK;
-					t2p->pdf_switchdecode=1;
+					t2p->pdf_switchdecode ^= 1;
 					TIFFWarning(
 						TIFF2PDF_MODULE, 
 						"RGB image %s has 4 samples per pixel, assuming inverse CMYK",
@@ -1405,7 +1460,8 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 				_TIFFfree(t2p->pdf_palette);
 				t2p->pdf_palette=NULL;
 			}
-			t2p->pdf_palette = (char*) _TIFFmalloc(t2p->pdf_palettesize*3);
+			t2p->pdf_palette = (unsigned char*)
+				_TIFFmalloc(t2p->pdf_palettesize*3);
 			if(t2p->pdf_palette==NULL){
 				TIFFError(
 					TIFF2PDF_MODULE, 
@@ -1422,7 +1478,6 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 			}
 			t2p->pdf_palettesize *= 3;
 			break;
-#ifdef CMYK_SUPPORT
 		case PHOTOMETRIC_SEPARATED:
 			if(TIFFGetField(input, TIFFTAG_INDEXED, &xuint16)){
 				if(xuint16==1){
@@ -1475,7 +1530,8 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 				_TIFFfree(t2p->pdf_palette);
 				t2p->pdf_palette=NULL;
 			}
-			t2p->pdf_palette = (char*) _TIFFmalloc(t2p->pdf_palettesize*4);
+			t2p->pdf_palette = (unsigned char*) 
+				_TIFFmalloc(t2p->pdf_palettesize*4);
 			if(t2p->pdf_palette==NULL){
 				TIFFError(
 					TIFF2PDF_MODULE, 
@@ -1493,8 +1549,6 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 			}
 			t2p->pdf_palettesize *= 4;
 			break;
-#endif
-#ifdef YCBCR_SUPPORT
 		case PHOTOMETRIC_YCBCR:
 			t2p->pdf_colorspace=T2P_CS_RGB;
 			if(t2p->tiff_samplesperpixel==1){
@@ -1509,7 +1563,6 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 			}
 #endif
 			break;
-#endif
 		case PHOTOMETRIC_CIELAB:
 			t2p->pdf_labrange[0]= -127;
 			t2p->pdf_labrange[1]= 127;
@@ -1585,25 +1638,28 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 		}
 	}
 
-	TIFFGetField(input, TIFFTAG_ORIENTATION, &(t2p->tiff_orientation) );
-	if(t2p->tiff_orientation>8){
-			TIFFWarning(
-				TIFF2PDF_MODULE, 
-				"Image %s has orientation %u, assuming 0", 
-				TIFFFileName(input),
-				t2p->tiff_orientation);
-			t2p->tiff_orientation=0;
-	}
+        TIFFGetFieldDefaulted(input, TIFFTAG_ORIENTATION,
+                              &(t2p->tiff_orientation));
+        if(t2p->tiff_orientation>8){
+                TIFFWarning(TIFF2PDF_MODULE,
+                            "Image %s has orientation %u, assuming 0",
+                            TIFFFileName(input), t2p->tiff_orientation);
+                t2p->tiff_orientation=0;
+        }
 
-	TIFFGetField(input, TIFFTAG_XRESOLUTION, &(t2p->tiff_xres) );
-	TIFFGetField(input, TIFFTAG_YRESOLUTION, &(t2p->tiff_yres) );
-	TIFFGetField(input, TIFFTAG_RESOLUTIONUNIT, &(t2p->tiff_resunit) );
+        if(TIFFGetField(input, TIFFTAG_XRESOLUTION, &(t2p->tiff_xres) ) == 0){
+                t2p->tiff_xres=0.0;
+        }
+        if(TIFFGetField(input, TIFFTAG_YRESOLUTION, &(t2p->tiff_yres) ) == 0){
+                t2p->tiff_yres=0.0;
+        }
+	TIFFGetFieldDefaulted(input, TIFFTAG_RESOLUTIONUNIT, &(t2p->tiff_resunit) );
 	if(t2p->tiff_resunit==RESUNIT_CENTIMETER){
-		t2p->tiff_xres*=2.54;
-		t2p->tiff_yres*=2.54;
+		t2p->tiff_xres*=2.54F;
+		t2p->tiff_yres*=2.54F;
 	} else if (t2p->tiff_resunit!=RESUNIT_INCH && t2p->pdf_centimeters!=0){
-		t2p->tiff_xres*=2.54;
-		t2p->tiff_yres*=2.54;
+		t2p->tiff_xres*=2.54F;
+		t2p->tiff_yres*=2.54F;
 	}
 
 	t2p_compose_pdf_page(t2p);
@@ -1681,25 +1737,28 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 #endif
 
 	if(t2p->pdf_sample & T2P_SAMPLE_REALIZE_PALETTE){
-#ifdef CMYK_SUPPORT	
 		if(t2p->pdf_colorspace & T2P_CS_CMYK){
 			t2p->tiff_samplesperpixel=4;
 			t2p->tiff_photometric=PHOTOMETRIC_SEPARATED;
 		} else {
-#endif
 			t2p->tiff_samplesperpixel=3;
 			t2p->tiff_photometric=PHOTOMETRIC_RGB;
-#ifdef CMYK_SUPPORT
 		}
-#endif
 	}
 
-#ifdef COLORIMETRY_SUPPORT
-	t2p->tiff_transferfunctioncount=TIFFGetField(input, 
-		TIFFTAG_TRANSFERFUNCTION, 
-		&(t2p->tiff_transferfunction[0]),
-		&(t2p->tiff_transferfunction[1]),
-		&(t2p->tiff_transferfunction[2]));
+	if (TIFFGetField(input, TIFFTAG_TRANSFERFUNCTION,
+			 &(t2p->tiff_transferfunction[0]),
+			 &(t2p->tiff_transferfunction[1]),
+			 &(t2p->tiff_transferfunction[2]))) {
+		if(t2p->tiff_transferfunction[1] !=
+		   t2p->tiff_transferfunction[0]) {
+			t2p->tiff_transferfunctioncount=3;
+		} else {
+			t2p->tiff_transferfunctioncount=1;
+		}
+	} else {
+		t2p->tiff_transferfunctioncount=0;
+	}
 	if(TIFFGetField(input, TIFFTAG_WHITEPOINT, &xfloatp)!=0){
 		t2p->tiff_whitechromaticities[0]=xfloatp[0];
 		t2p->tiff_whitechromaticities[1]=xfloatp[1];
@@ -1726,12 +1785,10 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 			t2p->tiff_whitechromaticities[0]=xfloatp[0];
 			t2p->tiff_whitechromaticities[1]=xfloatp[1];
 		} else {
-			t2p->tiff_whitechromaticities[0]=0.3457; //0.3127;
-			t2p->tiff_whitechromaticities[1]=0.3585;//0.3290;
+			t2p->tiff_whitechromaticities[0]=0.3457F; /* 0.3127F; */
+			t2p->tiff_whitechromaticities[1]=0.3585F; /* 0.3290F; */
 		}
 	}
-#endif
-#ifdef ICC_SUPPORT
 	if(TIFFGetField(input, 
 		TIFFTAG_ICCPROFILE, 
 		&(t2p->tiff_iccprofilelength), 
@@ -1741,12 +1798,7 @@ void t2p_read_tiff_data(T2P* t2p, TIFF* input){
 		t2p->tiff_iccprofilelength=0;
 		t2p->tiff_iccprofile=NULL;
 	}
-#endif
 	
-	if(t2p->pdf_colorspace_invert != 0){
-		(t2p->pdf_switchdecode==0) ? (t2p->pdf_switchdecode=1) : (t2p->pdf_switchdecode=0);
-	}
-
 #ifdef CCITT_SUPPORT
 	if( t2p->tiff_bitspersample==1 &&
 		t2p->tiff_samplesperpixel==1){
@@ -1771,7 +1823,9 @@ void t2p_read_tiff_size(T2P* t2p, TIFF* input){
 	uint16 xuint16=0;
 	tstrip_t i=0;
 	tstrip_t stripcount=0;
-	tsize_t k=0;
+#endif
+#ifdef OJPEG_SUPPORT
+        uint32 k=0;
 #endif
 
 	if(t2p->pdf_transcode == T2P_TRANSCODE_RAW){
@@ -2057,7 +2111,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 	float* xfloatp;
 	uint32* sbc;
 	unsigned char* stripbuffer;
-	uint32 striplength=0;
+	tsize_t striplength=0;
 	uint32 max_striplength=0;
 #endif
 
@@ -2075,7 +2129,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 			}
 			TIFFReadRawStrip(input, 0, (tdata_t) buffer, t2p->tiff_datasize);
 			if (t2p->tiff_fillorder==FILLORDER_LSB2MSB){
-					// make sure is lsb-to-msb bit-endianness fill order
+					/* make sure is lsb-to-msb bit-endianness fill order */
 					TIFFReverseBits(buffer, t2p->tiff_datasize);
 			}
 			TIFFWriteFile(output, (tdata_t) buffer, t2p->tiff_datasize);
@@ -2086,6 +2140,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 #ifdef ZIP_SUPPORT
 		if(t2p->pdf_compression == T2P_COMPRESS_ZIP){
 			buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                        memset(buffer, 0, t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
 					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2108,6 +2163,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 
 			if(t2p->tiff_dataoffset != 0){
 				buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                                memset(buffer, 0, t2p->tiff_datasize);
 				if(buffer==NULL){
 					TIFFError(TIFF2PDF_MODULE, 
 						"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2166,6 +2222,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 					return(0);
 				}
 				buffer=(unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                                memset(buffer, 0, t2p->tiff_datasize);
 				if(buffer==NULL){
 					TIFFError(TIFF2PDF_MODULE, 
 						"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2206,6 +2263,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 #ifdef JPEG_SUPPORT
 		if(t2p->tiff_compression == COMPRESSION_JPEG){
 			buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                        memset(buffer, 0, t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
 					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2266,6 +2324,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 
 	if(t2p->pdf_sample==T2P_SAMPLE_NOTHING){
 		buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                memset(buffer, 0, t2p->tiff_datasize);
 		if(buffer==NULL){
 			TIFFError(TIFF2PDF_MODULE, 
 				"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2303,6 +2362,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 			stripcount=sepstripcount/t2p->tiff_samplesperpixel;
 			
 			buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                        memset(buffer, 0, t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
 					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2351,6 +2411,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 		}
 
 		buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
+                memset(buffer, 0, t2p->tiff_datasize);
 		if(buffer==NULL){
 			TIFFError(TIFF2PDF_MODULE, 
 				"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
@@ -2411,7 +2472,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 		}
 
 		if(t2p->pdf_sample & T2P_SAMPLE_YCBCR_TO_RGB){
-			samplebuffer=(char*)_TIFFrealloc(
+			samplebuffer=(unsigned char*)_TIFFrealloc(
 				(tdata_t)buffer, 
 				t2p->tiff_width*t2p->tiff_length*4);
 			if(samplebuffer==NULL){
@@ -2508,11 +2569,9 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 		if(t2p->pdf_colorspace & T2P_CS_GRAY){
 			(void)0;
 		}
-#ifdef CMYK_SUPPORT
 		if(t2p->pdf_colorspace & T2P_CS_CMYK){
 			(void)0;
 		}
-#endif
 		if(t2p->pdf_defaultcompressionquality != 0){
 			TIFFSetField(output, 
 				TIFFTAG_JPEGQUALITY, 
@@ -2546,7 +2605,7 @@ tsize_t t2p_readwrite_pdf_image(T2P* t2p, TIFF* input, TIFF* output){
 		bufferoffset=TIFFWriteEncodedStrip(output, (tstrip_t)0, buffer,stripsize*stripcount); 
 	} else
 #endif
-	bufferoffset=TIFFWriteEncodedStrip(output, (tstrip_t)0, buffer,t2p->tiff_datasize); 
+	bufferoffset=TIFFWriteEncodedStrip(output, (tstrip_t)0, buffer, t2p->tiff_datasize); 
 	if(buffer != NULL){
 		_TIFFfree(buffer);
 		buffer=NULL;
@@ -2608,7 +2667,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2628,7 +2688,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2647,7 +2708,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 		if(t2p->tiff_compression == COMPRESSION_OJPEG){
 			if(! t2p->pdf_ojpegdata){
 				TIFFError(TIFF2PDF_MODULE, 
-					"No support for OJPEG image %s with bad tables", 
+					"No support for OJPEG image %s with "
+                                        "bad tables", 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
 				return(0);
@@ -2655,7 +2717,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer=(unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2693,7 +2756,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer= (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2735,7 +2799,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 		buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 		if(buffer==NULL){
 			TIFFError(TIFF2PDF_MODULE, 
-				"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+				"Can't allocate %u bytes of memory for "
+                                "t2p_readwrite_pdf_image_tile, %s", 
 				t2p->tiff_datasize, 
 				TIFFFileName(input));
 			t2p->t2p_error = T2P_ERR_ERROR;
@@ -2767,7 +2832,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2776,7 +2842,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			samplebuffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(samplebuffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2814,7 +2881,8 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 			buffer = (unsigned char*) _TIFFmalloc(t2p->tiff_datasize);
 			if(buffer==NULL){
 				TIFFError(TIFF2PDF_MODULE, 
-					"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image_tile, %s", 
+					"Can't allocate %u bytes of memory "
+                                        "for t2p_readwrite_pdf_image_tile, %s", 
 					t2p->tiff_datasize, 
 					TIFFFileName(input));
 				t2p->t2p_error = T2P_ERR_ERROR;
@@ -2949,11 +3017,9 @@ tsize_t t2p_readwrite_pdf_image_tile(T2P* t2p, TIFF* input, TIFF* output, ttile_
 		if(t2p->pdf_colorspace & T2P_CS_GRAY){
 			(void)0;
 		}
-#ifdef CMYK_SUPPORT
 		if(t2p->pdf_colorspace & T2P_CS_CMYK){
 			(void)0;
 		}
-#endif
 		if(t2p->pdf_defaultcompressionquality != 0){
 			TIFFSetField(output, 
 				TIFFTAG_JPEGQUALITY, 
@@ -3428,8 +3494,8 @@ tsize_t t2p_sample_realize_palette(T2P* t2p, unsigned char* buffer){
 }
 
 /*
-	This functions converts in place a buffer of ABGR interleaved data into RGB interleaved 
-	data, discarding A.
+	This functions converts in place a buffer of ABGR interleaved data
+	into RGB interleaved data, discarding A.
 */
 
 tsize_t t2p_sample_abgr_to_rgb(tdata_t data, uint32 samplecount){
@@ -3441,17 +3507,17 @@ tsize_t t2p_sample_abgr_to_rgb(tdata_t data, uint32 samplecount){
 	for(i=0;i<samplecount;i++){
 		sample=((uint32*)data)[i];
 		itimes3=i*3;
-		((char*)data)[i*3]= sample & 0xff;
-		((char*)data)[i*3+1]= (sample>>8) & 0xff;
-		((char*)data)[i*3+2]= (sample>>16) & 0xff;
+		((char*)data)[i*3]= (char) (sample & 0xff);
+		((char*)data)[i*3+1]= (char) ((sample>>8) & 0xff);
+		((char*)data)[i*3+2]= (char) ((sample>>16) & 0xff);
 	}
 
 	return(i*3);
 }
 
 /*
-	This functions converts in place a buffer of RGBA interleaved data into RGB interleaved 
-	data, discarding A.
+	This functions converts in place a buffer of RGBA interleaved data
+	into RGB interleaved data, discarding A.
 */
 
 tsize_t t2p_sample_rgba_to_rgb(tdata_t data, uint32 samplecount){
@@ -3463,9 +3529,9 @@ tsize_t t2p_sample_rgba_to_rgb(tdata_t data, uint32 samplecount){
 	for(i=0;i<samplecount;i++){
 		sample=((uint32*)data)[i];
 		itimes3=i*3;
-		((char*)data)[i*3]= (sample>>24) & 0xff;
-		((char*)data)[i*3+1]= (sample>>16) & 0xff;
-		((char*)data)[i*3+2]= (sample>>8) & 0xff;
+		((char*)data)[i*3]= (char) ((sample>>24) & 0xff);
+		((char*)data)[i*3+1]= (char) ((sample>>16) & 0xff);
+		((char*)data)[i*3+2]= (char) ((sample>>8) & 0xff);
 	}
 
 	return(i*3);
@@ -3486,10 +3552,13 @@ tsize_t t2p_sample_rgbaa_to_rgb(tdata_t data, uint32 samplecount){
 	for(i=0;i<samplecount;i++){
 		sample=((uint32*)data)[i];
 		itimes3=i*3;
-		alpha=((255-(sample & 0xff)));
-		((unsigned char*)data)[i*3]= (sample>>24) & 0xff;
-		((unsigned char*)data)[i*3+1]= (sample>>16) & 0xff;
-		((unsigned char*)data)[i*3+2]= (sample>>8) & 0xff;
+		alpha=(unsigned char)((255-(sample & 0xff)));
+		((unsigned char*)data)[i*3] =
+			(unsigned char) ((sample>>24) & 0xff);
+		((unsigned char*)data)[i*3+1] =
+			(unsigned char) ((sample>>16) & 0xff);
+		((unsigned char*)data)[i*3+2] =
+			(unsigned char) ((sample>>8) & 0xff);
 		((unsigned char*)data)[i*3]+=alpha;
 		((unsigned char*)data)[i*3+1]+=alpha;
 		((unsigned char*)data)[i*3+2]+=alpha;
@@ -4055,7 +4124,7 @@ tsize_t t2p_write_pdf_pages(T2P* t2p,
 
 tsize_t t2p_write_pdf_page(uint32 object, T2P* t2p, TIFF* output){
 
-	int i=0;
+	unsigned int i=0;
 	tsize_t written=0;
 	char buffer[16];
 	int buflen=0;
@@ -4117,7 +4186,7 @@ tsize_t t2p_write_pdf_page(uint32 object, T2P* t2p, TIFF* output){
 			written += TIFFWriteFile(output, (tdata_t) " 0 R ", 5);
 		written += TIFFWriteFile(output, (tdata_t) ">>\r", 3);
 	}
-	if(t2p->tiff_transferfunctioncount !=0){
+	if(t2p->tiff_transferfunctioncount != 0) {
 		written += TIFFWriteFile(output, (tdata_t) "/ExtGState <<", 13);
 		TIFFWriteFile(output, (tdata_t) "/GS1 ", 5);
 		buflen = sprintf(
@@ -4173,8 +4242,8 @@ void t2p_compose_pdf_page(T2P* t2p){
 	if(t2p->pdf_yres==0.0){
 		t2p->pdf_yres = t2p->pdf_defaultyres;
 	}
-	t2p->pdf_imagewidth=((float)(t2p->tiff_width)) *72.0 / t2p->pdf_xres;
-	t2p->pdf_imagelength=((float)(t2p->tiff_length)) *72.0 / t2p->pdf_yres;
+	t2p->pdf_imagewidth=((float)(t2p->tiff_width)) *72.0F / t2p->pdf_xres;
+	t2p->pdf_imagelength=((float)(t2p->tiff_length)) *72.0F / t2p->pdf_yres;
 	if(t2p->pdf_overridepagesize != 0){
 		t2p->pdf_pagewidth = t2p->pdf_defaultpagewidth;
 		t2p->pdf_pagelength = t2p->pdf_defaultpagelength;
@@ -4191,10 +4260,10 @@ void t2p_compose_pdf_page(T2P* t2p){
 	t2p->pdf_imagebox.x2=t2p->pdf_imagewidth;
 	t2p->pdf_imagebox.y2=t2p->pdf_imagelength;
 	if(t2p->pdf_overridepagesize!=0){
-		t2p->pdf_imagebox.x1+=((t2p->pdf_pagewidth-t2p->pdf_imagewidth)/2.0);
-		t2p->pdf_imagebox.y1+=((t2p->pdf_pagelength-t2p->pdf_imagelength)/2.0);
-		t2p->pdf_imagebox.x2+=((t2p->pdf_pagewidth-t2p->pdf_imagewidth)/2.0);
-		t2p->pdf_imagebox.y2+=((t2p->pdf_pagelength-t2p->pdf_imagelength)/2.0);
+		t2p->pdf_imagebox.x1+=((t2p->pdf_pagewidth-t2p->pdf_imagewidth)/2.0F);
+		t2p->pdf_imagebox.y1+=((t2p->pdf_pagelength-t2p->pdf_imagelength)/2.0F);
+		t2p->pdf_imagebox.x2+=((t2p->pdf_pagewidth-t2p->pdf_imagewidth)/2.0F);
+		t2p->pdf_imagebox.y2+=((t2p->pdf_pagelength-t2p->pdf_imagelength)/2.0F);
 	}
 	if(t2p->tiff_orientation > 4){
 		f=t2p->pdf_mediabox.x2;
@@ -4358,45 +4427,45 @@ void t2p_compose_pdf_page_orient(T2P_BOX* boxp, uint16 orientation){
 		case 1:
 			break;
 		case 2:
-			boxp->mat[0]=0.0-m1[0];
+			boxp->mat[0]=0.0F-m1[0];
 			boxp->mat[6]+=m1[0];
 			break;
 		case 3:
-			boxp->mat[0]=0.0-m1[0];
-			boxp->mat[4]=0.0-m1[4];
+			boxp->mat[0]=0.0F-m1[0];
+			boxp->mat[4]=0.0F-m1[4];
 			boxp->mat[6]+=m1[0];
 			boxp->mat[7]+=m1[4];
 			break;
 		case 4:
-			boxp->mat[4]=0.0-m1[4];
+			boxp->mat[4]=0.0F-m1[4];
 			boxp->mat[7]+=m1[4];
 			break;
 		case 5:
-			boxp->mat[0]=0.0;
-			boxp->mat[1]=0.0-m1[0];
-			boxp->mat[3]=0.0-m1[4];
-			boxp->mat[4]=0.0;
+			boxp->mat[0]=0.0F;
+			boxp->mat[1]=0.0F-m1[0];
+			boxp->mat[3]=0.0F-m1[4];
+			boxp->mat[4]=0.0F;
 			boxp->mat[6]+=m1[4];
 			boxp->mat[7]+=m1[0];
 			break;
 		case 6:
-			boxp->mat[0]=0.0;
-			boxp->mat[1]=0.0-m1[0];
+			boxp->mat[0]=0.0F;
+			boxp->mat[1]=0.0F-m1[0];
 			boxp->mat[3]=m1[4];
-			boxp->mat[4]=0.0;
+			boxp->mat[4]=0.0F;
 			boxp->mat[7]+=m1[0];
 			break;
 		case 7:
-			boxp->mat[0]=0.0;
+			boxp->mat[0]=0.0F;
 			boxp->mat[1]=m1[0];
 			boxp->mat[3]=m1[4];
-			boxp->mat[4]=0.0;
+			boxp->mat[4]=0.0F;
 			break;
 		case 8:
-			boxp->mat[0]=0.0;
+			boxp->mat[0]=0.0F;
 			boxp->mat[1]=m1[0];
-			boxp->mat[3]=0.0-m1[4];
-			boxp->mat[4]=0.0;
+			boxp->mat[3]=0.0F-m1[4];
+			boxp->mat[4]=0.0F;
 			boxp->mat[6]+=m1[4];
 			break;
 	}
@@ -4420,41 +4489,41 @@ void t2p_compose_pdf_page_orient_flip(T2P_BOX* boxp, uint16 orientation){
 		boxp->y2 = f;
 	}
 	boxp->mat[0]=m1[0]=boxp->x2-boxp->x1;
-	boxp->mat[1]=m1[1]=0.0;
-	boxp->mat[2]=m1[2]=0.0;
-	boxp->mat[3]=m1[3]=0.0;
+	boxp->mat[1]=m1[1]=0.0F;
+	boxp->mat[2]=m1[2]=0.0F;
+	boxp->mat[3]=m1[3]=0.0F;
 	boxp->mat[4]=m1[4]=boxp->y2-boxp->y1;
-	boxp->mat[5]=m1[5]=0.0;
+	boxp->mat[5]=m1[5]=0.0F;
 	boxp->mat[6]=m1[6]=boxp->x1;
 	boxp->mat[7]=m1[7]=boxp->y1;
-	boxp->mat[8]=m1[8]=1.0;
+	boxp->mat[8]=m1[8]=1.0F;
 	switch(orientation){
 		case 5:
-			boxp->mat[0]=0.0;
-			boxp->mat[1]=0.0-m1[4];
-			boxp->mat[3]=0.0-m1[0];
-			boxp->mat[4]=0.0;
+			boxp->mat[0]=0.0F;
+			boxp->mat[1]=0.0F-m1[4];
+			boxp->mat[3]=0.0F-m1[0];
+			boxp->mat[4]=0.0F;
 			boxp->mat[6]+=m1[0];
 			boxp->mat[7]+=m1[4];
 			break;
 		case 6:
-			boxp->mat[0]=0.0;
-			boxp->mat[1]=0.0-m1[4];
+			boxp->mat[0]=0.0F;
+			boxp->mat[1]=0.0F-m1[4];
 			boxp->mat[3]=m1[0];
-			boxp->mat[4]=0.0;
+			boxp->mat[4]=0.0F;
 			boxp->mat[7]+=m1[4];
 			break;
 		case 7:
-			boxp->mat[0]=0.0;
+			boxp->mat[0]=0.0F;
 			boxp->mat[1]=m1[4];
 			boxp->mat[3]=m1[0];
-			boxp->mat[4]=0.0;
+			boxp->mat[4]=0.0F;
 			break;
 		case 8:
-			boxp->mat[0]=0.0;
+			boxp->mat[0]=0.0F;
 			boxp->mat[1]=m1[4];
-			boxp->mat[3]=0.0-m1[0];
-			boxp->mat[4]=0.0;
+			boxp->mat[3]=0.0F-m1[0];
+			boxp->mat[4]=0.0F;
 			boxp->mat[6]+=m1[0];
 			break;
 	}
@@ -4600,12 +4669,10 @@ tsize_t t2p_write_pdf_xobject_cs(T2P* t2p, TIFF* output){
 	float Y_W=1.0;
 	float Z_W=1.0;
 	
-#ifdef ICC_SUPPORT
 	if( (t2p->pdf_colorspace & T2P_CS_ICCBASED) != 0){
 		written += t2p_write_pdf_xobject_icccs(t2p, output);
 		return(written);
 	}
-#endif
 	if( (t2p->pdf_colorspace & T2P_CS_PALETTE) != 0){
 		written += TIFFWriteFile(output, (tdata_t) "[ /Indexed ", 11);
 		t2p->pdf_colorspace ^= T2P_CS_PALETTE;
@@ -4624,55 +4691,41 @@ tsize_t t2p_write_pdf_xobject_cs(T2P* t2p, TIFF* output){
 			written += TIFFWriteFile(output, (tdata_t) "/DeviceGray \r", 13);
 	}
 	if(t2p->pdf_colorspace & T2P_CS_GRAY){
-#ifdef COLORIMETRY_SUPPORT
 			if(t2p->pdf_colorspace & T2P_CS_CALGRAY){
 				written += t2p_write_pdf_xobject_calcs(t2p, output);
 			} else {
-#endif
 				written += TIFFWriteFile(output, (tdata_t) "/DeviceGray \r", 13);
-#ifdef COLORIMETRY_SUPPORT
 			}
-#endif
 	}
 	if(t2p->pdf_colorspace & T2P_CS_RGB){
-#ifdef COLORIMETRY_SUPPORT	
 			if(t2p->pdf_colorspace & T2P_CS_CALRGB){
 				written += t2p_write_pdf_xobject_calcs(t2p, output);
 			} else {
-#endif
 				written += TIFFWriteFile(output, (tdata_t) "/DeviceRGB \r", 12);
-#ifdef COLORIMETRY_SUPPORT
 			}
-#endif
 	}
-#ifdef CMYK_SUPPORT
 	if(t2p->pdf_colorspace & T2P_CS_CMYK){
 			written += TIFFWriteFile(output, (tdata_t) "/DeviceCMYK \r", 13);
 	}
-#endif
 	if(t2p->pdf_colorspace & T2P_CS_LAB){
 			written += TIFFWriteFile(output, (tdata_t) "[/Lab << \r", 10);
 			written += TIFFWriteFile(output, (tdata_t) "/WhitePoint ", 12);
-#ifdef COLORIMETRY_SUPPORT
 			X_W = t2p->tiff_whitechromaticities[0];
 			Y_W = t2p->tiff_whitechromaticities[1];
-			Z_W = 1.0 - (X_W + Y_W);
+			Z_W = 1.0F - (X_W + Y_W);
 			X_W /= Y_W;
 			Z_W /= Y_W;
-			Y_W = 1.0;
+			Y_W = 1.0F;
 			buflen=sprintf(buffer, "[%.4f %.4f %.4f] \r", X_W, Y_W, Z_W);
 			written += TIFFWriteFile(output, (tdata_t) buffer, buflen);
-#endif
-#ifndef COLORIMETRY_SUPPORT
-			X_W = 0.3457;// 0.3127; // D50, commented D65
-			Y_W = 0.3585;//0.3290;
-			Z_W = 1.0 - (X_W + Y_W);
+			X_W = 0.3457F; /* 0.3127F; */ /* D50, commented D65 */
+			Y_W = 0.3585F; /* 0.3290F; */
+			Z_W = 1.0F - (X_W + Y_W);
 			X_W /= Y_W;
 			Z_W /= Y_W;
-			Y_W = 1.0;
+			Y_W = 1.0F;
 			buflen=sprintf(buffer, "[%.4f %.4f %.4f] \r", X_W, Y_W, Z_W);
 			written += TIFFWriteFile(output, (tdata_t) buffer, buflen);
-#endif
 			written += TIFFWriteFile(output, (tdata_t) "/Range ", 7);
 			buflen=sprintf(buffer, "[%d %d %d %d] \r", 
 				t2p->pdf_labrange[0], 
@@ -4687,8 +4740,6 @@ tsize_t t2p_write_pdf_xobject_cs(T2P* t2p, TIFF* output){
 	return(written);
 }
 
-#ifdef COLORIMETRY_SUPPORT
-
 tsize_t t2p_write_pdf_transfer(T2P* t2p, TIFF* output){
 
 	tsize_t written=0;
@@ -4696,7 +4747,7 @@ tsize_t t2p_write_pdf_transfer(T2P* t2p, TIFF* output){
 	int buflen=0;
 
 	written += TIFFWriteFile(output, (tdata_t) "<< /Type /ExtGState \r/TR ", 25);
-	if(t2p->tiff_transferfunctioncount==1){
+	if(t2p->tiff_transferfunctioncount == 1){
 		buflen=sprintf(buffer, "%lu", t2p->pdf_xrefcount+1);
 		written += TIFFWriteFile(output, (tdata_t) buffer, buflen);
 		written += TIFFWriteFile(output, (tdata_t) " 0 R ", 5);
@@ -4788,10 +4839,10 @@ tsize_t t2p_write_pdf_xobject_calcs(T2P* t2p, TIFF* output){
 		written += TIFFWriteFile(output, (tdata_t) "/CalGray ", 9);
 		X_W = t2p->tiff_whitechromaticities[0];
 		Y_W = t2p->tiff_whitechromaticities[1];
-		Z_W = 1.0 - (X_W + Y_W);
+		Z_W = 1.0F - (X_W + Y_W);
 		X_W /= Y_W;
 		Z_W /= Y_W;
-		Y_W = 1.0;
+		Y_W = 1.0F;
 	}
 	if(t2p->pdf_colorspace & T2P_CS_CALRGB){
 		written += TIFFWriteFile(output, (tdata_t) "/CalRGB ", 8);
@@ -4807,7 +4858,7 @@ tsize_t t2p_write_pdf_xobject_calcs(T2P* t2p, TIFF* output){
 		Y_R = (y_r/R) * ((x_g-x_b)*y_w - (x_w-x_b)*y_g + (x_w-x_g)*y_b) / z_w;
 		X_R = Y_R * x_r / y_r;
 		Z_R = Y_R * (((1-x_r)/y_r)-1);
-		Y_G = ((0.0-(y_g))/G) * ((x_r-x_b)*y_w - (x_w-x_b)*y_r + (x_w-x_r)*y_b) / z_w;
+		Y_G = ((0.0F-(y_g))/G) * ((x_r-x_b)*y_w - (x_w-x_b)*y_r + (x_w-x_r)*y_b) / z_w;
 		X_G = Y_G * x_g / y_g;
 		Z_G = Y_G * (((1-x_g)/y_g)-1);
 		Y_B = (y_b/B) * ((x_r-x_g)*y_w - (x_w-x_g)*y_r + (x_w-x_r)*y_g) / z_w;
@@ -4843,9 +4894,7 @@ tsize_t t2p_write_pdf_xobject_calcs(T2P* t2p, TIFF* output){
 
 	return(written);
 }
-#endif
 
-#ifdef ICC_SUPPORT
 /*
 	This function writes a PDF Image XObject Colorspace array to output.
 */
@@ -4893,7 +4942,6 @@ tsize_t t2p_write_pdf_xobject_icccs_stream(T2P* t2p, TIFF* output){
 	
 	return(written);
 }
-#endif
 
 /*
 	This function writes a palette stream for an indexed color space to output.
@@ -5154,9 +5202,7 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 	tsize_t written=0;
 	ttile_t i2=0;
 	tsize_t streamlen=0;
-#ifdef COLORIMETRY_SUPPORT
 	uint16 i=0;
-#endif
 
 	t2p_read_tiff_init(t2p, input);
 	if(t2p->t2p_error!=T2P_ERR_OK){return(0);}
@@ -5210,13 +5256,12 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 		written += t2p_write_pdf_obj_start(t2p->pdf_xrefcount, output);
 		written += t2p_write_pdf_stream_length(streamlen, output);
 		written += t2p_write_pdf_obj_end(output);
-#ifdef COLORIMETRY_SUPPORT
 		if(t2p->tiff_transferfunctioncount != 0){
 			t2p->pdf_xrefoffsets[t2p->pdf_xrefcount++]=written;
 			written += t2p_write_pdf_obj_start(t2p->pdf_xrefcount, output);
 			written += t2p_write_pdf_transfer(t2p, output);
 			written += t2p_write_pdf_obj_end(output);
-			for(i=0;i<t2p->tiff_transferfunctioncount;i++){
+			for(i=0; i < t2p->tiff_transferfunctioncount; i++){
 				t2p->pdf_xrefoffsets[t2p->pdf_xrefcount++]=written;
 				written += t2p_write_pdf_obj_start(t2p->pdf_xrefcount, output);
 				written += t2p_write_pdf_stream_dict_start(output);
@@ -5230,7 +5275,6 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 				written += t2p_write_pdf_obj_end(output);
 			}
 		}
-#endif
 		if( (t2p->pdf_colorspace & T2P_CS_PALETTE) != 0){
 			t2p->pdf_xrefoffsets[t2p->pdf_xrefcount++]=written;
 			t2p->pdf_palettecs=t2p->pdf_xrefcount;
@@ -5245,7 +5289,6 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 			written += t2p_write_pdf_stream_end(output);
 			written += t2p_write_pdf_obj_end(output);
 		}
-#ifdef ICC_SUPPORT
 		if( (t2p->pdf_colorspace & T2P_CS_ICCBASED) != 0){
 			t2p->pdf_xrefoffsets[t2p->pdf_xrefcount++]=written;
 			t2p->pdf_icccs=t2p->pdf_xrefcount;
@@ -5260,7 +5303,6 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 			written += t2p_write_pdf_stream_end(output);
 			written += t2p_write_pdf_obj_end(output);
 		}
-#endif		
 		if(t2p->tiff_tiles[t2p->pdf_page].tiles_tilecount !=0){
 			for(i2=0;i2<t2p->tiff_tiles[t2p->pdf_page].tiles_tilecount;i2++){
 				t2p->pdf_xrefoffsets[t2p->pdf_xrefcount++]=written;
@@ -5317,3 +5359,5 @@ tsize_t t2p_write_pdf(T2P* t2p, TIFF* input, TIFF* output){
 
 	return(written);
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */

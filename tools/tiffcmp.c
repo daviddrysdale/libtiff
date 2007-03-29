@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffcmp.c,v 1.4 2003/06/18 09:57:55 dron Exp $ */
+/* $Id: tiffcmp.c,v 1.7 2004/10/14 04:53:56 bfriesen Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -24,9 +24,15 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "tiffio.h"
 
@@ -43,7 +49,7 @@ static	int cmptags(TIFF*, TIFF*);
 static	void ContigCompare(int, uint32, unsigned char*, unsigned char*, int);
 static	void PrintDiff(uint32, int, uint32, int, int);
 static	void SeparateCompare(int, int, uint32, unsigned char*, unsigned char*);
-static	void eof(const char*, uint32, int);
+static	void leof(const char*, uint32, int);
 
 int
 main(int argc, char* argv[])
@@ -117,7 +123,7 @@ usage(void)
 }
 
 #define	checkEOF(tif, row, sample) { \
-	eof(TIFFFileName(tif), row, sample); \
+	leof(TIFFFileName(tif), row, sample); \
 	goto bad; \
 }
 
@@ -133,7 +139,8 @@ tiffcmp(TIFF* tif1, TIFF* tif2)
 {
 	uint16 config1, config2;
 	tsize_t size1;
-	uint32 s, row;
+	uint32 row;
+	tsample_t s;
 	unsigned char *buf1, *buf2;
 
 	if (!CheckShortTag(tif1, tif2, TIFFTAG_BITSPERSAMPLE, "BitsPerSample"))
@@ -525,7 +532,7 @@ CheckStringTag(TIFF* tif1, TIFF* tif2, int tag, char* name)
 }
 
 static void
-eof(const char* name, uint32 row, int s)
+leof(const char* name, uint32 row, int s)
 {
 
 	printf("%s: EOF at scanline %lu", name, row);
@@ -533,3 +540,5 @@ eof(const char* name, uint32 row, int s)
 		printf(", sample %d", s);
 	printf("\n");
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */

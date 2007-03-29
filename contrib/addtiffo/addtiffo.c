@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: addtiffo.c,v 1.3 2000/04/18 22:48:31 warmerda Exp $
+ * $Id: addtiffo.c,v 1.4 2004/09/21 13:31:23 dron Exp $
  *
  * Project:  GeoTIFF Overview Builder
  * Purpose:  Mainline for building overviews in a TIFF file.
@@ -28,6 +28,9 @@
  ******************************************************************************
  *
  * $Log: addtiffo.c,v $
+ * Revision 1.4  2004/09/21 13:31:23  dron
+ * Add missed include string.h.
+ *
  * Revision 1.3  2000/04/18 22:48:31  warmerda
  * Added support for averaging resampling
  *
@@ -49,6 +52,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tiffio.h"
 
 void TIFFBuildOverviews( TIFF *, int, int *, int, const char *,

@@ -1,4 +1,4 @@
-.\" $Header: /cvsroot/osrs/libtiff/man/TIFFGetField.3t,v 1.3 2002/03/01 04:09:03 warmerda Exp $
+.\" $Header: /cvs/maptools/cvsroot/libtiff/man/TIFFGetField.3t,v 1.3 2002/03/01 04:09:03 warmerda Exp $
 .\"
 .\" Copyright (c) 1988-1997 Sam Leffler
 .\" Copyright (c) 1991-1997 Silicon Graphics, Inc.

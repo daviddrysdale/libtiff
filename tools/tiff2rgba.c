@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiff2rgba.c,v 1.7 2003/10/03 11:22:29 dron Exp $ */
+/* $Id: tiff2rgba.c,v 1.10 2004/09/03 13:57:34 dron Exp $ */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler
@@ -24,9 +24,15 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "tiffio.h"
 
@@ -155,7 +161,7 @@ cvt_by_tile( TIFF *in, TIFF *out )
      * mirroring pass.
      */
     wrk_line = (uint32*)_TIFFmalloc(tile_width * sizeof (uint32));
-    if (wrk_line == 0) {
+    if (!wrk_line) {
         TIFFError(TIFFFileName(in), "No space for raster scanline buffer");
         ok = 0;
     }
@@ -167,7 +173,7 @@ cvt_by_tile( TIFF *in, TIFF *out )
     {
         for( col = 0; ok && col < width; col += tile_width )
         {
-            int		i_row;
+            uint32 i_row;
 
             /* Read the tile into an RGBA array */
             if (!TIFFReadRGBATile(in, col, row, raster)) {
@@ -246,7 +252,7 @@ cvt_by_strip( TIFF *in, TIFF *out )
      * mirroring pass.
      */
     wrk_line = (uint32*)_TIFFmalloc(width * sizeof (uint32));
-    if (wrk_line == 0) {
+    if (!wrk_line) {
         TIFFError(TIFFFileName(in), "No space for raster scanline buffer");
         ok = 0;
     }
@@ -321,9 +327,7 @@ cvt_whole_image( TIFF *in, TIFF *out )
 {
     uint32* raster;			/* retrieve RGBA image */
     uint32  width, height;		/* image width & height */
-    uint32	row;
-    uint32  *wrk_line;
-        
+    uint32  row;
         
     TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
@@ -457,7 +461,6 @@ static char* stuff[] = {
     " jpeg\t\tJPEG encoding\n",
     " zip\t\tLempel-Ziv & Welch encoding\n",
     " lzw\t\tLempel-Ziv & Welch encoding\n",
-    " (lzw compression unsupported by default due to Unisys patent enforcement)\n",
     " packbits\tPackBits encoding\n",
     " none\t\tno compression\n",
     "and the other options are:\n",
@@ -479,3 +482,5 @@ usage(int code)
 		fprintf(stderr, "%s\n", stuff[i]);
 	exit(code);
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */

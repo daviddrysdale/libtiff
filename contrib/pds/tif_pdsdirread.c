@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/contrib/pds/tif_pdsdirread.c,v 1.2 2003/11/17 15:09:39 dron Exp $ */
+/* $Header: /cvs/maptools/cvsroot/libtiff/contrib/pds/tif_pdsdirread.c,v 1.2 2003/11/17 15:09:39 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1996 Sam Leffler

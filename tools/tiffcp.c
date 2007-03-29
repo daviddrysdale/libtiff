@@ -1,4 +1,4 @@
-/* $Header: /cvsroot/osrs/libtiff/tools/tiffcp.c,v 1.15 2003/12/20 13:46:57 dron Exp $ */
+/* $Id: tiffcp.c,v 1.27 2004/09/21 13:27:23 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -38,12 +38,18 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <ctype.h>
 #include <assert.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "tiffio.h"
 
@@ -92,7 +98,7 @@ static int nextSrcImage (TIFF *tif, char **imageSpec)
 {
   if (**imageSpec == comma) {  /* if not @comma, we've done all images */
     char *start = *imageSpec + 1;
-    unsigned long nextImage = strtol (start, imageSpec, 0);
+    tdir_t nextImage = (tdir_t)strtol(start, imageSpec, 0);
     if (start == *imageSpec) nextImage = TIFFCurrentDirectory (tif);
     if (**imageSpec)
     {
@@ -181,7 +187,7 @@ main(int argc, char* argv[])
                      fputs ("Bias image must be organized in strips\n", stderr);
                             exit (-7);
                           }
-		          TIFFGetField(bias, TIFFTAG_SAMPLESPERPIXEL, &samples);
+			  TIFFGetField(bias, TIFFTAG_SAMPLESPERPIXEL, &samples);
                           if (samples != 1) {
                      fputs ("Bias image must be monochrome\n", stderr);
                             exit (-7);
@@ -289,7 +295,8 @@ main(int argc, char* argv[])
 		TIFFClose(in);
 	}
 
-        exit( 0 );
+        TIFFClose( out );
+        return (0);
 }
 
 
@@ -322,7 +329,7 @@ processCompressOptions(char* opt)
 		defcompression = COMPRESSION_PACKBITS;
 	} else if (strneq(opt, "jpeg", 4)) {
 		char* cp = strchr(opt, ':');
-		if (cp && isdigit(cp[1]))
+		if (cp && isdigit((int)cp[1]))
 			quality = atoi(cp+1);
 		if (cp && strchr(cp, 'r'))
 			jpegcolormode = JPEGCOLORMODE_RAW;
@@ -358,7 +365,7 @@ char* stuff[] = {
 " -t		write output in tiles",
 " -i		ignore read errors",
 " -b file[,#]	bias (dark) monochrome image to be subtracted from all others",
-" -,=%	    	use % rather than , to separate image #'s (per Note below)",           
+" -,=%		use % rather than , to separate image #'s (per Note below)",           
 "",
 " -r #		make each strip have no more than # rows",
 " -w #		set output tile width (pixels)",
@@ -368,7 +375,6 @@ char* stuff[] = {
 " -f msb2lsb	force msb-to-lsb FillOrder for output",
 "",
 " -c lzw[:opts]	compress output with Lempel-Ziv & Welch encoding",
-"               (no longer supported by default due to Unisys patent enforcement)", 
 " -c zip[:opts]	compress output with deflate encoding",
 " -c jpeg[:opts]	compress output with JPEG encoding",
 " -c packbits	compress output with packbits encoding",
@@ -469,7 +475,9 @@ cpTag(TIFF* in, TIFF* out, uint16 tag, uint16 count, TIFFDataType type)
 		}
 		break;
           default:
-            assert( FALSE );
+                TIFFError(TIFFFileName(in),
+                          "Data type %d is not supported, tag %d skipped.",
+                          tag, type);
 	}
 }
 
@@ -500,8 +508,6 @@ static struct cpTag {
 	{ TIFFTAG_PRIMARYCHROMATICITIES,(uint16) -1,TIFF_RATIONAL },
 	{ TIFFTAG_HALFTONEHINTS,	2, TIFF_SHORT },
 	{ TIFFTAG_INKSET,		1, TIFF_SHORT },
-	{ TIFFTAG_INKNAMES,		1, TIFF_ASCII },
-	{ TIFFTAG_NUMBEROFINKS,		1, TIFF_SHORT },
 	{ TIFFTAG_DOTRANGE,		2, TIFF_SHORT },
 	{ TIFFTAG_TARGETPRINTER,	1, TIFF_ASCII },
 	{ TIFFTAG_SAMPLEFORMAT,		1, TIFF_SHORT },
@@ -526,7 +532,6 @@ static int
 tiffcp(TIFF* in, TIFF* out)
 {
 	uint16 bitspersample, samplesperpixel;
-        uint16 input_compression;
 	copyFunc cf;
 	uint32 width, length;
 	struct cpTag* p;
@@ -540,16 +545,27 @@ tiffcp(TIFF* in, TIFF* out)
 	else
 		CopyField(TIFFTAG_COMPRESSION, compression);
 	if (compression == COMPRESSION_JPEG) {
+	    uint16 input_compression, input_photometric;
+
             if ( TIFFGetField( in, TIFFTAG_COMPRESSION, &input_compression )
                  && input_compression == COMPRESSION_JPEG ) {
                 TIFFSetField(in, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
             }
-            if (jpegcolormode == JPEGCOLORMODE_RGB)
-		TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_YCBCR);
-            else
-                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+	    if (TIFFGetField(in, TIFFTAG_PHOTOMETRIC, &input_photometric)) {
+		if(input_photometric == PHOTOMETRIC_RGB) {
+			if (jpegcolormode == JPEGCOLORMODE_RGB)
+		    		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
+					     PHOTOMETRIC_YCBCR);
+			else
+		    		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
+					     PHOTOMETRIC_RGB);
+		} else
+			TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
+				     input_photometric);
+	    }
         }
-	else if (compression == COMPRESSION_SGILOG || compression == COMPRESSION_SGILOG24)
+	else if (compression == COMPRESSION_SGILOG
+		 || compression == COMPRESSION_SGILOG24)
 		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
 		    samplesperpixel == 1 ?
 			PHOTOMETRIC_LOGL : PHOTOMETRIC_LOGLUV);
@@ -562,23 +578,23 @@ tiffcp(TIFF* in, TIFF* out)
 	/*
 	 * Will copy `Orientation' tag from input image
 	 */
-	TIFFGetField(in, TIFFTAG_ORIENTATION, &orientation);
+	TIFFGetFieldDefaulted(in, TIFFTAG_ORIENTATION, &orientation);
 	switch (orientation) {
 		case ORIENTATION_BOTRIGHT:
 		case ORIENTATION_RIGHTBOT:	/* XXX */
-		case ORIENTATION_LEFTBOT:	/* XXX */
 			TIFFWarning(TIFFFileName(in), "using bottom-left orientation");
 			orientation = ORIENTATION_BOTLEFT;
 		/* fall thru... */
+		case ORIENTATION_LEFTBOT:	/* XXX */
 		case ORIENTATION_BOTLEFT:
 			break;
 		case ORIENTATION_TOPRIGHT:
 		case ORIENTATION_RIGHTTOP:	/* XXX */
-		case ORIENTATION_LEFTTOP:	/* XXX */
 		default:
 			TIFFWarning(TIFFFileName(in), "using top-left orientation");
 			orientation = ORIENTATION_TOPLEFT;
 		/* fall thru... */
+		case ORIENTATION_LEFTTOP:	/* XXX */
 		case ORIENTATION_TOPLEFT:
 			break;
 	}
@@ -662,14 +678,35 @@ tiffcp(TIFF* in, TIFF* out)
 	  if (TIFFGetField(in, TIFFTAG_ICCPROFILE, &len32, &data))
 		TIFFSetField(out, TIFFTAG_ICCPROFILE, len32, data);
 	}
+	{ uint16 ninks;
+	  const char* inknames;
+	  if (TIFFGetField(in, TIFFTAG_NUMBEROFINKS, &ninks)) {
+		TIFFSetField(out, TIFFTAG_NUMBEROFINKS, ninks);
+		if (TIFFGetField(in, TIFFTAG_INKNAMES, &inknames)) {
+		    int inknameslen = strlen(inknames) + 1;
+		    const char* cp = inknames;
+		    while (ninks > 1) {
+			    cp = strchr(cp, '\0');
+			    if (cp) {
+				    cp++;
+				    inknameslen += (strlen(cp) + 1);
+			    }
+			    ninks--;
+		    }
+		    TIFFSetField(out, TIFFTAG_INKNAMES, inknameslen, inknames);
+		}
+	  }
+	}
 	{
 	  unsigned short pg0, pg1;
-	  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1))
-		if (pageNum < 0) // only one input file
+	  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1)) {
+		if (pageNum < 0) /* only one input file */
 			TIFFSetField(out, TIFFTAG_PAGENUMBER, pg0, pg1);
 		else 
 			TIFFSetField(out, TIFFTAG_PAGENUMBER, pageNum++, 0);
+	  }
 	}
+
 	for (p = tags; p < &tags[NTAGS]; p++)
 		CopyTag(p->tag, p->count, p->type);
 
@@ -767,7 +804,7 @@ DECLAREcpFunc(cpBiasedContig2Contig)
         uint32 row;
         buf = _TIFFmalloc(bufSize);
         biasBuf = _TIFFmalloc(bufSize);
-       	for (row = 0; row < imagelength; row++) {
+	for (row = 0; row < imagelength; row++) {
 	  if (TIFFReadScanline(in, buf, row, 0) < 0 && !ignore)
 		break;
 	  if (TIFFReadScanline(bias, biasBuf, row, 0) < 0 && !ignore)
@@ -1000,7 +1037,7 @@ cpImage(TIFF* in, TIFF* out, readFunc fin, writeFunc fout,
 DECLAREreadFunc(readContigStripsIntoBuffer)
 {
 	tsize_t scanlinesize = TIFFScanlineSize(in);
-     	uint8* bufp = buf;
+	uint8* bufp = buf;
 	uint32 row;
 
 	(void) imagewidth; (void) spp;
@@ -1021,8 +1058,7 @@ DECLAREreadFunc(readSeparateStripsIntoBuffer)
 		uint8* bufp = (uint8*) buf;
 		uint32 row;
 		tsample_t s;
-
-		for (row = 0; row < imagelength; row++) {
+for (row = 0; row < imagelength; row++) {
 			/* merge channels */
 			for (s = 0; s < spp; s++) {
 				uint8* bp = bufp + s;
@@ -1454,7 +1490,7 @@ pickCopyFunc(TIFF* in, TIFF* out, uint16 bitspersample, uint16 samplesperpixel)
 	    uint32 irps = (uint32) -1L;
 	    TIFFGetField(in, TIFFTAG_ROWSPERSTRIP, &irps);
             /* if biased, force decoded copying to allow image subtraction */
- 	    bychunk = !bias && (rowsperstrip == irps);
+	    bychunk = !bias && (rowsperstrip == irps);
 	}else{  /* either in or out is tiled */
             if (bias) {
                   fprintf(stderr,
@@ -1539,3 +1575,5 @@ pickCopyFunc(TIFF* in, TIFF* out, uint16 bitspersample, uint16 samplesperpixel)
 	    TIFFFileName(in));
 	return (NULL);
 }
+
+/* vim: set ts=8 sts=8 sw=8 noet: */
