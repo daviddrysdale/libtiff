@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_fax3.h,v 1.29 1996/02/09 22:51:07 sam Rel $ */
+/* $Id: tif_fax3.h,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1990-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1990-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -141,7 +141,7 @@ extern	const TIFFFaxTabEnt TIFFFaxBlackTable[];
 		goto eoflab;						\
 	    BitsAvail = (n);			/* pad with zeros */	\
 	} else {							\
-	    BitAcc |= bitmap[*cp++]<<BitsAvail;				\
+	    BitAcc |= ((uint32) bitmap[*cp++])<<BitsAvail;		\
 	    BitsAvail += 8;						\
 	}								\
     }									\
@@ -155,13 +155,13 @@ extern	const TIFFFaxTabEnt TIFFFaxBlackTable[];
 		goto eoflab;						\
 	    BitsAvail = (n);			/* pad with zeros */	\
 	} else {							\
-	    BitAcc |= bitmap[*cp++]<<BitsAvail;				\
+	    BitAcc |= ((uint32) bitmap[*cp++])<<BitsAvail;		\
 	    if ((BitsAvail += 8) < (n)) {				\
 		if (EndOfData()) {					\
 		    /* NB: we know BitsAvail is non-zero here */	\
 		    BitsAvail = (n);		/* pad with zeros */	\
 		} else {						\
-		    BitAcc |= bitmap[*cp++]<<BitsAvail;			\
+		    BitAcc |= ((uint32) bitmap[*cp++])<<BitsAvail;	\
 		    BitsAvail += 8;					\
 		}							\
 	    }								\
@@ -262,7 +262,7 @@ static const char* StateNames[] = {
 	    NeedBits16(11,eoflab);					\
 	    if (GetBits(11) == 0)					\
 		break;							\
-	    ClrBits(11);						\
+	    ClrBits(1);							\
 	}								\
     }									\
     for (;;) {								\
@@ -507,11 +507,13 @@ done1d:									\
 	}								\
     }									\
     if (RunLength) {							\
-	/* expect a final V0 */						\
-	NeedBits8(1,eof2d);						\
-	if (!GetBits(1))						\
-	    goto badMain2d;						\
-	ClrBits(1);							\
+	if (RunLength + a0 < lastx) {					\
+	    /* expect a final V0 */					\
+	    NeedBits8(1,eof2d);						\
+	    if (!GetBits(1))						\
+		goto badMain2d;						\
+	    ClrBits(1);							\
+	}								\
 	SETVAL(0);							\
     }									\
 eol2d:									\

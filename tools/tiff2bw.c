@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/tools/RCS/tiff2bw.c,v 1.21 1996/01/10 19:35:34 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/tools/tiff2bw.c,v 1.1.1.1 1999/07/27 21:50:28 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided

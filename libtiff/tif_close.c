@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_close.c,v 1.30 1996/01/10 19:32:55 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/libtiff/tif_close.c,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -37,8 +37,7 @@ TIFFClose(TIFF* tif)
 		 * Flush buffered data and directory (if dirty).
 		 */
 		TIFFFlush(tif);
-	if (tif->tif_cleanup)
-		(*tif->tif_cleanup)(tif);
+	(*tif->tif_cleanup)(tif);
 	TIFFFreeDirectory(tif);
 	if (tif->tif_rawdata && (tif->tif_flags&TIFF_MYBUFFER))
 		_TIFFfree(tif->tif_rawdata);

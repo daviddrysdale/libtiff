@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1996 Sam Leffler
+ * Copyright (c) 1996-1997 Sam Leffler
  * Copyright (c) 1996 Pixar
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
@@ -178,7 +178,7 @@ horizontalAccumulate12(uint16 *wp, int n, int stride, int16 *op,
     register float  t0, t1, t2, t3;
 
 #define SCALE12 2048.0
-#define CLAMP12(t) (((t) > 3071) ? 3071 : (uint16) (t))
+#define CLAMP12(t) (((t) < 3071) ? (uint16) (t) : 3071)
 
     if (n >= stride) {
 	mask = CODE_MASK;
@@ -230,7 +230,7 @@ horizontalAccumulate12(uint16 *wp, int n, int stride, int16 *op,
 	    n -= stride;
 	    while (n > 0) {
 		REPEAT(stride,
-		    wp[stride] += *wp; t0 = ToLinearF[*wp&mask] * SCALE12;
+		    wp[stride] += *wp; t0 = ToLinearF[wp[stride]&mask]*SCALE12;
 		    *op = CLAMP12(t0);  wp++; op++)
 		n -= stride;
 	    }
@@ -456,8 +456,8 @@ typedef	struct {
 	z_stream		stream;
 	uint16			*tbuf; 
 	uint16			stride;
-	short			user_datafmt;
-	short			state;
+	int			state;
+	int			user_datafmt;
 	int			quality;
 #define PLSTATE_INIT 1
 
@@ -637,7 +637,7 @@ PixarLogSetupDecode(TIFF* tif)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState* sp = DecoderState(tif);
-	static char module[] = "PixarLogSetupDecode";
+	static const char module[] = "PixarLogSetupDecode";
 
 	assert(sp != NULL);
 
@@ -690,7 +690,7 @@ PixarLogDecode(TIFF* tif, tidata_t op, tsize_t occ, tsample_t s)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState* sp = DecoderState(tif);
-	static char module[] = "PixarLogDecode";
+	static const char module[] = "PixarLogDecode";
 	int i, nsamples, llen;
 	uint16 *up;
 
@@ -801,7 +801,7 @@ PixarLogSetupEncode(TIFF* tif)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState* sp = EncoderState(tif);
-	static char module[] = "PixarLogSetupEncode";
+	static const char module[] = "PixarLogSetupEncode";
 
 	assert(sp != NULL);
 
@@ -1012,7 +1012,7 @@ PixarLogEncode(TIFF* tif, tidata_t bp, tsize_t cc, tsample_t s)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	PixarLogState *sp = EncoderState(tif);
-	static char module[] = "PixarLogEncode";
+	static const char module[] = "PixarLogEncode";
 	int 	i, n, llen;
 	unsigned short * up;
 
@@ -1093,7 +1093,7 @@ static int
 PixarLogPostEncode(TIFF* tif)
 {
 	PixarLogState *sp = EncoderState(tif);
-	static char module[] = "PixarLogPostEncode";
+	static const char module[] = "PixarLogPostEncode";
 	int state;
 
 	sp->stream.avail_in = 0;
@@ -1147,11 +1147,14 @@ PixarLogCleanup(TIFF* tif)
 		if (sp->ToLinearF) _TIFFfree(sp->ToLinearF);
 		if (sp->ToLinear16) _TIFFfree(sp->ToLinear16);
 		if (sp->ToLinear8) _TIFFfree(sp->ToLinear8);
-		if (tif->tif_mode == O_RDONLY)
-			inflateEnd(&sp->stream);
-		else
-			deflateEnd(&sp->stream);
-		_TIFFfree(sp->tbuf);
+		if (sp->state&PLSTATE_INIT) {
+			if (tif->tif_mode == O_RDONLY)
+				inflateEnd(&sp->stream);
+			else
+				deflateEnd(&sp->stream);
+		}
+		if (sp->tbuf)
+			_TIFFfree(sp->tbuf);
 		_TIFFfree(sp);
 		tif->tif_data = NULL;
 	}
@@ -1162,7 +1165,7 @@ PixarLogVSetField(TIFF* tif, ttag_t tag, va_list ap)
 {
     PixarLogState *sp = (PixarLogState *)tif->tif_data;
     int result;
-    static char module[] = "PixarLogVSetField";
+    static const char module[] = "PixarLogVSetField";
 
     switch (tag) {
      case TIFFTAG_PIXARLOGQUALITY:
@@ -1206,6 +1209,11 @@ PixarLogVSetField(TIFF* tif, ttag_t tag, va_list ap)
 	    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
 	    break;
 	}
+	/*
+	 * Must recalculate sizes should bits/sample change.
+	 */
+	tif->tif_tilesize = TIFFTileSize(tif);
+	tif->tif_scanlinesize = TIFFScanlineSize(tif);
 	result = 1;		/* NB: pseudo tag */
 	break;
      default:
@@ -1220,6 +1228,9 @@ PixarLogVGetField(TIFF* tif, ttag_t tag, va_list ap)
     PixarLogState *sp = (PixarLogState *)tif->tif_data;
 
     switch (tag) {
+     case TIFFTAG_PIXARLOGQUALITY:
+	*va_arg(ap, int*) = sp->quality;
+	break;
      case TIFFTAG_PIXARLOGDATAFMT:
 	*va_arg(ap, int*) = sp->user_datafmt;
 	break;
@@ -1230,7 +1241,7 @@ PixarLogVGetField(TIFF* tif, ttag_t tag, va_list ap)
 }
 
 static const TIFFFieldInfo pixarlogFieldInfo[] = {
-    {TIFFTAG_PIXARLOGDATAFMT,0,0,TIFF_SHORT,FIELD_PSEUDO,FALSE,FALSE,""},
+    {TIFFTAG_PIXARLOGDATAFMT,0,0,TIFF_ANY,  FIELD_PSEUDO,FALSE,FALSE,""},
     {TIFFTAG_PIXARLOGQUALITY,0,0,TIFF_ANY,  FIELD_PSEUDO,FALSE,FALSE,""}
 };
 
@@ -1248,9 +1259,7 @@ TIFFInitPixarLog(TIFF* tif, int scheme)
 	if (tif->tif_data == NULL)
 		goto bad;
 	sp = (PixarLogState*) tif->tif_data;
-	sp->stream.zalloc = NULL;
-	sp->stream.zfree = NULL;
-	sp->stream.opaque = NULL;
+	memset(sp, 0, sizeof (*sp));
 	sp->stream.data_type = Z_BINARY;
 	sp->user_datafmt = PIXARLOGDATAFMT_UNKNOWN;
 

@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tiffio.h,v 1.93 1996/03/07 17:00:14 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/libtiff/tiffio.h,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -39,7 +39,7 @@
  * version checking should be done based on the
  * string returned by TIFFGetVersion.
  */
-#define	TIFFLIB_VERSION	19960307	/* March 7, 1996 */
+#define	TIFFLIB_VERSION	19970127	/* January 27, 1997 */
 
 /*
  * TIFF is defined as an incomplete type to hide the
@@ -52,7 +52,7 @@ typedef	struct tiff TIFF;
  * data types used in the *exported* interfaces.  These
  * definitions depend on the proper definition of types
  * in tiff.h.  Note also that the varargs interface used
- * pass tag types and values uses the types defined in
+ * to pass tag types and values uses the types defined in
  * tiff.h directly.
  *
  * NB: ttag_t is unsigned int and not unsigned short because
@@ -65,12 +65,18 @@ typedef	struct tiff TIFF;
  * NB: toff_t is not off_t for many reasons; TIFFs max out at
  *     32-bit file offsets being the most important
  */
-typedef	unsigned int ttag_t;	/* directory tag */
+typedef	uint32 ttag_t;		/* directory tag */
 typedef	uint16 tdir_t;		/* directory index */
 typedef	uint16 tsample_t;	/* sample number */
 typedef	uint32 tstrip_t;	/* strip number */
 typedef uint32 ttile_t;		/* tile number */
 typedef	int32 tsize_t;		/* i/o size in bytes */
+typedef	void* tdata_t;		/* image data ref */
+typedef	int32 toff_t;		/* file offset */
+
+#if !defined(__WIN32__) && (defined(_WIN32) || defined(WIN32))
+#define __WIN32__
+#endif
 #if defined(_WINDOWS) || defined(__WIN32__) || defined(_Windows)
 #include <windows.h>
 #ifdef __WIN32__
@@ -81,8 +87,6 @@ typedef	HFILE thandle_t;	/* client data handle */
 #else
 typedef	void* thandle_t;	/* client data handle */
 #endif
-typedef	void* tdata_t;		/* image data ref */
-typedef	int32 toff_t;		/* file offset */
 
 #ifndef NULL
 #define	NULL	0
@@ -238,6 +242,7 @@ extern	int TIFFIsUpSampled(TIFF*);
 extern	int TIFFIsMSB2LSB(TIFF*);
 extern	uint32 TIFFCurrentRow(TIFF*);
 extern	tdir_t TIFFCurrentDirectory(TIFF*);
+extern	tdir_t TIFFNumberOfDirectories(TIFF*);
 extern	uint32 TIFFCurrentDirOffset(TIFF*);
 extern	tstrip_t TIFFCurrentStrip(TIFF*);
 extern	ttile_t TIFFCurrentTile(TIFF*);

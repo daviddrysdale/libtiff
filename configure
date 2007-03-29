@@ -1,10 +1,10 @@
 #!/bin/sh
-#	$Header: /usr/people/sam/tiff/RCS/configure,v 1.48 1996/04/26 03:36:20 sam Rel $
+#	$Header: /usr/local/cvs/internal/libtiff/configure,v 1.1.1.1 1999/07/27 21:50:26 mike Exp $
 #
 # Tag Image File Format (TIFF) Software
 #
-# Copyright (c) 1988-1996 Sam Leffler
-# Copyright (c) 1991-1996 Silicon Graphics, Inc.
+# Copyright (c) 1988-1997 Sam Leffler
+# Copyright (c) 1991-1997 Silicon Graphics, Inc.
 # 
 # Permission to use, copy, modify, distribute, and sell this software and 
 # its documentation for any purpose is hereby granted without fee, provided
@@ -47,6 +47,7 @@ SRCDIR=					# dir where source is located
 DIR_BIN=/usr/local/bin			# destination for applications
 DIR_LIB=/usr/local/lib			# destination for library
 DIR_INC=/usr/local/include		# destination for include files
+DIR_HTML=/var/httpd/htdocs/tiff		# destination for HTML files
 DIRS_LIBINC=				# dirs to search for ancillary includes
 DIR_JPEGLIB=				# dir for IJG -ljpeg
 DIR_GZLIB=				# dir for zlib -lgz
@@ -55,6 +56,7 @@ LIBCOPTS=				# library-specific C-compiler options
 JPEG=no					# configure JPEG support
 ZIP=no					# configure ZIP/Deflate support
 PORT=auto				# enable portability emulations
+HTML=no					# install HTML documentation
 LIBGL=auto				# auto-enable build of SGI -lgl apps
 LIBIMAGE=auto				# auto-enable build of SGI -limage apps
 MACHDEPLIBS=-lm				# machine-dependent libraries for apps
@@ -145,7 +147,7 @@ do
     -target|--target)		ac_prev=TARGET;;
     -target=*|--target=*)	TARGET="$ac_optarg" ;;
     -version|--version)
-	echo "This is TIFF configure $Revision: 1.48 $"
+	echo "This is TIFF configure $Revision: 1.1.1.1 $"
 	exit 0
 	;;
     -help|--help)		usage; exit 0;;
@@ -250,12 +252,14 @@ else
     VERSIONFILE=$SRCDIR/VERSION
     ALPHAFILE=$SRCDIR/dist/tiff.alpha
 fi
-VERSION="v`cat $VERSIONFILE``awk '{print $3}' $ALPHAFILE`"
 DATE=`date`
 
-DIST_MAJOR=`echo $VERSION | sed 's/v\([0-9][0-9]*\)\..*/\1/'`
-DIST_MINOR=`echo $VERSION | sed 's/v.*\.\([0-9][0-9]*\).*/\1/'`
-DIST_ALPHA=`echo $VERSION | sed -e 's/.*beta//' -e 's/.*release//'`
+eval `cat $VERSIONFILE | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(.*\)/DIST_MAJOR=\1; DIST_MINOR=\2; DIST_TYPE=\3/'`
+DIST_ALPHA=`awk '{print $3}' $ALPHAFILE`
+VERSION="v${DIST_MAJOR}.${DIST_MINOR}${DIST_TYPE}"
+if [ $DIST_TYPE = beta ]; then
+    VERSION="${VERSION}${DIST_ALPHA}"
+fi
 
 Note()
 {
@@ -1079,14 +1083,17 @@ Note "Done checking system libraries."
 Note ""
 Note "Checking for Dynamic Shared Object (DSO) support."
 if [ "$DSO" = auto ]; then
+    DSO=no
     DSOSUF_VERSION=
+    DSOLD='${LD}'
+    TIFFLIBREF=
     case $TARGET-$CC-$ISGCC in
     *-irix5.2*)
 	if (findApp rld /lib:/usr/lib:$PATH) >/dev/null 2>&1; then
 	    DSOSUF=so
-	    DSOLD='${LD}'
 	    DSOOPTS='-elf -shared -no_unresolved -all'
 	    DSO=IRIX52
+	    TIFFLIBREF='-L${DEPTH}/libtiff -rpath '${DIR_LIB}' -ltiff'
 	fi
 	;;
     *-irix*)
@@ -1095,39 +1102,55 @@ if [ "$DSO" = auto ]; then
 	    DSOLD="${CCOMPILER} ${ENVOPTS}"
 	    DSOOPTS='-shared -rdata_shared -check_registry ${SRCDIR}/port/irix/so_locations -quickstart_info'
 	    DSO=IRIX
+	    TIFFLIBREF='-L${DEPTH}/libtiff -rpath '${DIR_LIB}' -ltiff'
 	fi
 	;;
     *-aix*)
 	DSOSUF=a
-	DSOLD='${LD}'
 	DSOOPTS='-r'
 	LIBCOPTS="-bM\:SRE"
 	DSO=AIX
 	;;
+    *-hpux*yes)
+        DSOSUF=sl
+        DSOLD=gcc
+        DSOOPTS='-fpic -shared'
+        LIBCOPTS=-fpic
+        DSO=HPUX
+	TIFFLIBREF="-Wl,+s,+b${DIR_LIB}"' -L${DEPTH}/libtiff -ltiff'
+        ;;		 
     *-hpux*)
 	DSOSUF=sl
-	DSOLD='${LD}'
 	DSOOPTS='-b'
 	LIBCOPTS="+Z"
-#	LIBPORT="-Wl,+b${DIR_LIB}"
 	DSO=HPUX
-	;;
-    *-solaris*-yes)
-	DSOSUF=so
-	DSOLD='${LD}'
-	DSOOPTS='-G'
-	LIBCOPTS="-fpic"
-	DSO=SOLARIS
+	TIFFLIBREF="-Wl,+s,+b${DIR_LIB}"' -L${DEPTH}/libtiff -ltiff'
 	;;
     *-solaris*)
 	DSOSUF=so
-	DSOLD='${LD}'
 	DSOOPTS='-G'
-	LIBCOPTS="-K PIC"
+	if [ $ISGCC = yes ]; then
+	    LIBCOPTS="-fpic"
+	else
+	    LIBCOPTS="-K PIC"
+	fi
 	DSO=SOLARIS
+	TIFFLIBREF='-L${DEPTH}/libtiff -R'${DIR_LIB}' -ltiff'
 	;;
-    *-linux)
-	if [ -x /lib/libc.so.5 ]; then
+    *-netbsd*)
+	DSOSUF=so.${DIST_MAJOR}.0
+	LIBCOPTS='-fPIC'
+	DSO=NETBSD
+	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
+	;;
+    *-freebsd*)
+	DSOSUF=so.${DIST_MAJOR}.0
+	LIBCOPTS='-fpic -fPIC'
+	DSO=FREEBSD
+	TIFFLIBREF='-L${DEPTH}/libtiff -ltiff'
+	;;
+    *-linux*)
+	if [ -r /lib/libc.so.5 ]; then
 	    DSOSUF=so.${DIST_MAJOR}
 	    DSOSUF_VERSION=${DSOSUF}.${DIST_MINOR}.${DIST_ALPHA}
 	    LIBCOPTS='-fPIC'
@@ -1140,9 +1163,7 @@ if [ "$DSO" = auto ]; then
 	DSOOPTS='-shared'
 	DSO=OSF
 	;;
-    *)  DSO=no;;
     esac
-    test -z "$DSOSUF_VERSION" && DSOSUF_VERSION=${DSOSUF}
 fi
 if [ "$DSO" != no ]; then
     JUNK="$JUNK t.${DSOSUF}"
@@ -1175,6 +1196,8 @@ if [ "$DSO" = no ]; then
     DSOSUF=a DSOOPTS= LIBCOPTS= 
     DSOSUF_VERSION=$DSOSUF
 fi
+test -z "$TIFFLIBREF" && TIFFLIBREF="\${DEPTH}/libtiff/libtiff.${DSOSUF}"
+test -z "$DSOSUF_VERSION" && DSOSUF_VERSION=${DSOSUF}
 Note "Done checking for DSO support."
 
 Note ""
@@ -1444,7 +1467,8 @@ TIFF configuration parameters are:
 [ 2] Directory for libraries:           $DIR_LIB
 [ 3] Directory for include files:       $DIR_INC
 [ 4] Directory for manual pages:        $DIR_MAN
-[ 5] Manual page installation scheme:   $MANSCHEME
+[ 5] Directory for HTML documents:      $DIR_HTML
+[ 6] Manual page installation scheme:   $MANSCHEME
 
 EOF
 }
@@ -1464,7 +1488,10 @@ promptForParameter()
     4)	promptForNonNullStringParameter "$DIR_MAN" \
 	    "Directory to install manual pages";	DIR_MAN="$param"
 	;;
-    5)	promptForManPageScheme;;
+    5)	promptForNonNullStringParameter "$DIR_HTML" \
+	    "Directory to install HTML documents";	DIR_HTML="$param"
+	;;
+    6)	promptForManPageScheme;;
     esac
 }
 
@@ -1682,6 +1709,7 @@ cat>>confsed<<EOF
 /@DIR_BIN@/s;;${DIR_BIN};g
 /@DIR_JPEGLIB@/s;;`relativize ${DIR_JPEGLIB}`;g
 /@DIR_GZLIB@/s;;`relativize ${DIR_GZLIB}`;g
+/@DIR_HTML@/s;;${DIR_HTML};g
 /@DIR_INC@/s;;${DIR_INC};g
 /@DIR_LIB@/s;;${DIR_LIB};g
 /@DIR_MAN@/s;;${DIR_MAN};g
@@ -1689,12 +1717,14 @@ cat>>confsed<<EOF
 /@DIST_ALPHA@/s;;${DIST_ALPHA};g
 /@DIST_MAJOR@/s;;${DIST_MAJOR};g
 /@DIST_MINOR@/s;;${DIST_MINOR};g
+/@DIST_TYPE@/s;;${DIST_TYPE};g
 /@DSO@/s;;${DSO};g
 /@DSOSUF@/s;;${DSOSUF};g
 /@DSOSUF_VERSION@/s;;${DSOSUF_VERSION};g
 /@ENVOPTS@/s;;${ENVOPTS};g
 /@FILLORDER@/s;;${FILLORDER};g
 /@GCOPTS@/s;;${GCOPTS};g
+/@HTML@/s;;${HTML};g
 /@INSTALL@/s;;${INSTALL};g
 /@LIBJPEG@/s;;`relativize ${LIBJPEG}`;g
 /@LIBGL@/s;;${LIBGL};g
@@ -1723,6 +1753,7 @@ cat>>confsed<<EOF
 /@RELSRCDIR@/s;;`relativize ${SRCDIR}`;g
 /@STRIP@/s;;${STRIP};g
 /@TARGET@/s;;${TARGET};g
+/@TIFFLIBREF@/s;;${TIFFLIBREF};g
 /@VERSION@/s;;${VERSION};g
 /@VERSIONFILE@/s;;`relativize ${VERSIONFILE}`;g
 /@WARNING@/s;;Warning, this file was automatically created by the TIFF configure script;g
@@ -1789,10 +1820,10 @@ if [ $SRCDIR_IS_LIBTIFF != yes ] ; then
         tools/Makefile
         port/install.sh
         "
+    test $HTML = yes &&		CONF_FILES="$CONF_FILES html/Makefile"
+    test $PORT = yes &&		CONF_FILES="$CONF_FILES port/Makefile"
 fi
-
 SedConfigFiles $CONF_FILES
-test $PORT = yes &&		   SedConfigFiles port/Makefile
 
 Note "Done."
 

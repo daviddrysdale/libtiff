@@ -1,9 +1,9 @@
-#	$Header: /usr/people/sam/tiff/dist/RCS/tiff.spec,v 1.3 1996/01/10 19:37:41 sam Rel $
+#	$Header: /usr/local/cvs/internal/libtiff/dist/tiff.spec,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $
 #
 # TIFF Software
 #
-# Copyright (c) 1994-1996 Sam Leffler
-# Copyright (c) 1994-1996 Silicon Graphics, Inc.
+# Copyright (c) 1994-1997 Sam Leffler
+# Copyright (c) 1994-1997 Silicon Graphics, Inc.
 # 
 # Permission to use, copy, modify, distribute, and sell this software and 
 # its documentation for any purpose is hereby granted without fee, provided
@@ -40,11 +40,11 @@ product tiff
 	id	"${TIFF_NAME} Software"
 	version	"${CUR_VERS}"
 	subsys tools default
-	    id	"${TIFF_NAME} Tools"
+	    id	"${TIFF_NAME} Tools & Library DSO"
 	    exp	"tiff.sw.tools"
 	endsubsys
 	subsys dev
-	    id	"${TIFF_NAME} Library"
+	    id	"${TIFF_NAME} Developement Software"
 	    exp	"tiff.sw.dev"
 	endsubsys
     endimage
@@ -60,14 +60,9 @@ product tiff
 	    id	"${TIFF_NAME} Library Manual Pages"
 	    exp	"tiff.man.dev"
 	endsubsys
-    endimage
-
-    image html
-	id	"${TIFF_NAME} HTML Materials"
-	version	"${CUR_VERS}"
-	subsys sw
-	    id	"${TIFF_NAME} Software Distribution"
-	    exp	"tiff.html.sw"
+	subsys html
+	    id	"${TIFF_NAME} HTML Materials"
+	    exp	"tiff.man.html"
 	endsubsys
     endimage
 endproduct

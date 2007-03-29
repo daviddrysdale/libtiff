@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_dirwrite.c,v 1.56 1996/04/29 21:56:21 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/libtiff/tif_dirwrite.c,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -60,6 +60,9 @@ static	int TIFFWriteAnyArray(TIFF*,
 	    TIFFDataType, ttag_t, TIFFDirEntry*, uint32, double*);
 #ifdef COLORIMETRY_SUPPORT
 static	int TIFFWriteTransferFunction(TIFF*, TIFFDirEntry*);
+#endif
+#ifdef CMYK_SUPPORT
+static	int TIFFWriteInkNames(TIFF*, TIFFDirEntry*);
 #endif
 static	int TIFFWriteData(TIFF*, TIFFDirEntry*, char*);
 static	int TIFFLinkDirectory(TIFF*);
@@ -265,6 +268,12 @@ TIFFWriteDirectory(TIFF* tif)
 			if (!TIFFSetupShortPair(tif, fip->field_tag, dir))
 				goto bad;
 			break;
+#ifdef CMYK_SUPPORT
+		case FIELD_INKNAMES:
+			if (!TIFFWriteInkNames(tif, dir))
+				goto bad;
+			break;
+#endif
 #ifdef COLORIMETRY_SUPPORT
 		case FIELD_TRANSFERFUNCTION:
 			if (!TIFFWriteTransferFunction(tif, dir))
@@ -369,6 +378,7 @@ static int
 TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 {
 	u_short wc = (u_short) fip->field_writecount;
+	uint32 wc2;
 
 	dir->tdir_tag = fip->field_tag;
 	dir->tdir_type = (u_short) fip->field_type;
@@ -379,10 +389,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 	case TIFF_SSHORT:
 		if (wc > 1) {
 			uint16* wp;
-			if (wc == (u_short) TIFF_VARIABLE) {
+			if (wc == (u_short) TIFF_VARIABLE)
 				TIFFGetField(tif, fip->field_tag, &wc, &wp);
-				dir->tdir_count = wc;
-			} else
+			else
 				TIFFGetField(tif, fip->field_tag, &wp);
 			if (!WRITEF(TIFFWriteShortArray, wp))
 				return (0);
@@ -397,10 +406,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 	case TIFF_SLONG:
 		if (wc > 1) {
 			uint32* lp;
-			if (wc == (u_short) TIFF_VARIABLE) {
+			if (wc == (u_short) TIFF_VARIABLE)
 				TIFFGetField(tif, fip->field_tag, &wc, &lp);
-				dir->tdir_count = wc;
-			} else
+			else
 				TIFFGetField(tif, fip->field_tag, &lp);
 			if (!WRITEF(TIFFWriteLongArray, lp))
 				return (0);
@@ -413,10 +421,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 	case TIFF_SRATIONAL:
 		if (wc > 1) {
 			float* fp;
-			if (wc == (u_short) TIFF_VARIABLE) {
+			if (wc == (u_short) TIFF_VARIABLE)
 				TIFFGetField(tif, fip->field_tag, &wc, &fp);
-				dir->tdir_count = wc;
-			} else
+			else
 				TIFFGetField(tif, fip->field_tag, &fp);
 			if (!WRITEF(TIFFWriteRationalArray, fp))
 				return (0);
@@ -430,10 +437,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 	case TIFF_FLOAT:
 		if (wc > 1) {
 			float* fp;
-			if (wc == (u_short) TIFF_VARIABLE) {
+			if (wc == (u_short) TIFF_VARIABLE)
 				TIFFGetField(tif, fip->field_tag, &wc, &fp);
-				dir->tdir_count = wc;
-			} else
+			else
 				TIFFGetField(tif, fip->field_tag, &fp);
 			if (!WRITEF(TIFFWriteFloatArray, fp))
 				return (0);
@@ -447,10 +453,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 	case TIFF_DOUBLE:
 		if (wc > 1) {
 			double* dp;
-			if (wc == (u_short) TIFF_VARIABLE) {
+			if (wc == (u_short) TIFF_VARIABLE)
 				TIFFGetField(tif, fip->field_tag, &wc, &dp);
-				dir->tdir_count = wc;
-			} else
+			else
 				TIFFGetField(tif, fip->field_tag, &dp);
 			if (!WRITEF(TIFFWriteDoubleArray, dp))
 				return (0);
@@ -474,6 +479,9 @@ TIFFWriteNormalTag(TIFF* tif, TIFFDirEntry* dir, const TIFFFieldInfo* fip)
 		  if (wc == (u_short) TIFF_VARIABLE) {
 			TIFFGetField(tif, fip->field_tag, &wc, &cp);
 			dir->tdir_count = wc;
+		  } else if (wc == (u_short) TIFF_VARIABLE2) {
+			TIFFGetField(tif, fip->field_tag, &wc2, &cp);
+			dir->tdir_count = wc2;
 		  } else 
 			TIFFGetField(tif, fip->field_tag, &cp);
 		  if (!TIFFWriteByteArray(tif, dir, cp))
@@ -688,7 +696,7 @@ TIFFWriteRationalArray(TIFF* tif,
 			if (type == TIFF_RATIONAL) {
 				TIFFWarning(tif->tif_name,
 	"\"%s\": Information lost writing value (%g) as (unsigned) RATIONAL",
-				_TIFFFieldWithTag(tif,tag)->field_name, v);
+				_TIFFFieldWithTag(tif,tag)->field_name, fv);
 				fv = 0;
 			} else
 				fv = -fv, sign = -1;
@@ -853,6 +861,19 @@ TIFFWriteTransferFunction(TIFF* tif, TIFFDirEntry* dir)
 	}
 	return (TIFFWriteShortTable(tif,
 	    TIFFTAG_TRANSFERFUNCTION, dir, ncols, tf));
+}
+#endif
+
+#ifdef CMYK_SUPPORT
+static int
+TIFFWriteInkNames(TIFF* tif, TIFFDirEntry* dir)
+{
+	TIFFDirectory* td = &tif->tif_dir;
+
+	dir->tdir_tag = TIFFTAG_INKNAMES;
+	dir->tdir_type = (short) TIFF_ASCII;
+	dir->tdir_count = td->td_inknameslen;
+	return (TIFFWriteByteArray(tif, dir, td->td_inknames));
 }
 #endif
 

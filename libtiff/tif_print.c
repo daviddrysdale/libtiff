@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tif_print.c,v 1.67 1996/02/16 05:54:21 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/libtiff/tif_print.c,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -168,9 +168,20 @@ TIFFPrintDirectory(TIFF* tif, FILE* fd, long flags)
 		fprintf(fd, "  Photometric Interpretation: ");
 		if (td->td_photometric < NPHOTONAMES)
 			fprintf(fd, "%s\n", photoNames[td->td_photometric]);
-		else
-			fprintf(fd, "%u (0x%x)\n",
-			    td->td_photometric, td->td_photometric);
+		else {
+			switch (td->td_photometric) {
+			case PHOTOMETRIC_LOGL:
+				fprintf(fd, "CIE Log2(L)\n");
+				break;
+			case PHOTOMETRIC_LOGLUV:
+				fprintf(fd, "CIE Log2(L) (u',v')\n");
+				break;
+			default:
+				fprintf(fd, "%u (0x%x)\n",
+				    td->td_photometric, td->td_photometric);
+				break;
+			}
+		}
 	}
 	if (TIFFFieldSet(tif,FIELD_EXTRASAMPLES) && td->td_extrasamples) {
 		fprintf(fd, "  Extra Samples: %u<", td->td_extrasamples);
@@ -195,6 +206,10 @@ TIFFPrintDirectory(TIFF* tif, FILE* fd, long flags)
 		}
 		fprintf(fd, ">\n");
 	}
+	if (TIFFFieldSet(tif,FIELD_STONITS)) {
+		fprintf(fd, "  Sample to Nits conversion factor: %.4e\n",
+				td->td_stonits);
+	}
 #ifdef CMYK_SUPPORT
 	if (TIFFFieldSet(tif,FIELD_INKSET)) {
 		fprintf(fd, "  Ink Set: ");
@@ -213,12 +228,14 @@ TIFFPrintDirectory(TIFF* tif, FILE* fd, long flags)
 		fprintf(fd, "  Ink Names: ");
 		i = td->td_samplesperpixel;
 		sep = "";
-		for (cp = td->td_inknames; i > 0; cp = strchr(cp, '\0')) {
+		for (cp = td->td_inknames; i > 0; cp = strchr(cp,'\0')+1, i--) {
 			fprintf(fd, "%s", sep);
 			_TIFFprintAscii(fd, cp);
 			sep = ", ";
 		}
 	}
+	if (TIFFFieldSet(tif,FIELD_NUMBEROFINKS))
+		fprintf(fd, " Number of Inks: %u\n", td->td_ninks);
 	if (TIFFFieldSet(tif,FIELD_DOTRANGE))
 		fprintf(fd, "  Dot Range: %u-%u\n",
 		    td->td_dotrange[0], td->td_dotrange[1]);
@@ -396,6 +413,21 @@ TIFFPrintDirectory(TIFF* tif, FILE* fd, long flags)
 		} else
 			fprintf(fd, "(present)\n");
 	}
+#endif
+#ifdef ICC_SUPPORT
+	if (TIFFFieldSet(tif,FIELD_ICCPROFILE))
+		fprintf(fd, "  ICC Profile: <present>, %lu bytes\n",
+		    (u_long) td->td_profileLength);
+#endif
+#ifdef PHOTOSHOP_SUPPORT
+ 	if (TIFFFieldSet(tif,FIELD_PHOTOSHOP))
+ 		fprintf(fd, "  Photoshop Data: <present>, %lu bytes\n",
+ 		    (u_long) td->td_photoshopLength);
+#endif
+#ifdef IPTC_SUPPORT
+ 	if (TIFFFieldSet(tif,FIELD_RICHTIFFIPTC))
+ 		fprintf(fd, "  RichTIFFIPTC Data: <present>, %lu bytes\n",
+ 		    (u_long) td->td_richtiffiptcLength);
 #endif
 #if SUBIFD_SUPPORT
 	if (TIFFFieldSet(tif, FIELD_SUBIFD)) {

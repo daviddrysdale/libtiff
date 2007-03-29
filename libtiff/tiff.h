@@ -1,8 +1,8 @@
-/* $Header: /usr/people/sam/tiff/libtiff/RCS/tiff.h,v 1.71 1996/04/29 22:16:05 sam Rel $ */
+/* $Header: /usr/local/cvs/internal/libtiff/libtiff/tiff.h,v 1.1.1.1 1999/07/27 21:50:27 mike Exp $ */
 
 /*
- * Copyright (c) 1988-1996 Sam Leffler
- * Copyright (c) 1991-1996 Silicon Graphics, Inc.
+ * Copyright (c) 1988-1997 Sam Leffler
+ * Copyright (c) 1991-1997 Silicon Graphics, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -150,6 +150,11 @@ typedef	enum {
 #define	    COMPRESSION_CCITTRLEW	32771	/* #1 w/ word alignment */
 #define	    COMPRESSION_PACKBITS	32773	/* Macintosh RLE */
 #define	    COMPRESSION_THUNDERSCAN	32809	/* ThunderScan RLE */
+/* codes 32895-32898 are reserved for ANSI IT8 TIFF/IT <dkelly@etsinc.com) */
+#define	    COMPRESSION_IT8CTPAD	32895   /* IT8 CT w/padding */
+#define	    COMPRESSION_IT8LW		32896   /* IT8 Linework RLE */
+#define	    COMPRESSION_IT8MP		32897   /* IT8 Monochrome picture */
+#define	    COMPRESSION_IT8BL		32898   /* IT8 Binary line art */
 /* compression codes 32908-32911 are reserved for Pixar */
 #define     COMPRESSION_PIXARFILM	32908   /* Pixar companded 10bit LZW */
 #define	    COMPRESSION_PIXARLOG	32909   /* Pixar companded 11bit ZIP */
@@ -157,6 +162,8 @@ typedef	enum {
 /* compression code 32947 is reserved for Oceana Matrix <dev@oceana.com> */
 #define     COMPRESSION_DCS             32947   /* Kodak DCS encoding */
 #define	    COMPRESSION_JBIG		34661	/* ISO JBIG */
+#define     COMPRESSION_SGILOG		34676	/* SGI Log Luminance RLE */
+#define     COMPRESSION_SGILOG24	34677	/* SGI Log 24-bit packed */
 #define	TIFFTAG_PHOTOMETRIC		262	/* photometric interpretation */
 #define	    PHOTOMETRIC_MINISWHITE	0	/* min value is white */
 #define	    PHOTOMETRIC_MINISBLACK	1	/* min value is black */
@@ -166,6 +173,8 @@ typedef	enum {
 #define	    PHOTOMETRIC_SEPARATED	5	/* !color separations */
 #define	    PHOTOMETRIC_YCBCR		6	/* !CCIR 601 */
 #define	    PHOTOMETRIC_CIELAB		8	/* !1976 CIE L*a*b* */
+#define     PHOTOMETRIC_LOGL		32844	/* CIE Log2(L) */
+#define     PHOTOMETRIC_LOGLUV		32845	/* CIE Log2(L) (u',v') */
 #define	TIFFTAG_THRESHHOLDING		263	/* +thresholding used on data */
 #define	    THRESHHOLD_BILEVEL		1	/* b&w art scan */
 #define	    THRESHHOLD_HALFTONE		2	/* or dithered scan */
@@ -252,6 +261,7 @@ typedef	enum {
 #define	TIFFTAG_INKSET			332	/* !inks in separated image */
 #define	    INKSET_CMYK			1	/* !cyan-magenta-yellow-black */
 #define	TIFFTAG_INKNAMES		333	/* !ascii names of inks */
+#define	TIFFTAG_NUMBEROFINKS		334	/* !number of inks */
 #define	TIFFTAG_DOTRANGE		336	/* !0% and 100% dot codes */
 #define	TIFFTAG_TARGETPRINTER		337	/* !separation target */
 #define	TIFFTAG_EXTRASAMPLES		338	/* !info about extra samples */
@@ -311,14 +321,39 @@ typedef	enum {
 #define TIFFTAG_WRITERSERIALNUMBER      33405   /* device serial number */
 /* tag 33432 is listed in the 6.0 spec w/ unknown ownership */
 #define	TIFFTAG_COPYRIGHT		33432	/* copyright string */
+/* IPTC TAG from RichTIFF specifications */
+#define TIFFTAG_RICHTIFFIPTC    33723
+/* 34016-34029 are reserved for ANSI IT8 TIFF/IT <dkelly@etsinc.com) */
+#define TIFFTAG_IT8SITE			34016	/* site name */
+#define TIFFTAG_IT8COLORSEQUENCE	34017	/* color seq. [RGB,CMYK,etc] */
+#define TIFFTAG_IT8HEADER		34018	/* DDES Header */
+#define TIFFTAG_IT8RASTERPADDING	34019	/* raster scanline padding */
+#define TIFFTAG_IT8BITSPERRUNLENGTH	34020	/* # of bits in short run */
+#define TIFFTAG_IT8BITSPEREXTENDEDRUNLENGTH 34021/* # of bits in long run */
+#define TIFFTAG_IT8COLORTABLE		34022	/* LW colortable */
+#define TIFFTAG_IT8IMAGECOLORINDICATOR	34023	/* BP/BL image color switch */
+#define TIFFTAG_IT8BKGCOLORINDICATOR	34024	/* BP/BL bg color switch */
+#define TIFFTAG_IT8IMAGECOLORVALUE	34025	/* BP/BL image color value */
+#define TIFFTAG_IT8BKGCOLORVALUE	34026	/* BP/BL bg color value */
+#define TIFFTAG_IT8PIXELINTENSITYRANGE	34027	/* MP pixel intensity value */
+#define TIFFTAG_IT8TRANSPARENCYINDICATOR 34028	/* HC transparency switch */
+#define TIFFTAG_IT8COLORCHARACTERIZATION 34029	/* color character. table */
 /* tags 34232-34236 are private tags registered to Texas Instruments */
 #define TIFFTAG_FRAMECOUNT              34232   /* Sequence Frame Count */
+/* tag 34750 is a private tag registered to Adobe? */
+#define TIFFTAG_ICCPROFILE		34675	/* ICC profile data */
+/* tag 34377 is private tag registered to Adobe for PhotoShop */
+#define TIFFTAG_PHOTOSHOP				34377 
 /* tag 34750 is a private tag registered to Pixel Magic */
 #define	TIFFTAG_JBIGOPTIONS		34750	/* JBIG options */
 /* tags 34908-34914 are private tags registered to SGI */
 #define	TIFFTAG_FAXRECVPARAMS		34908	/* encoded Class 2 ses. parms */
 #define	TIFFTAG_FAXSUBADDRESS		34909	/* received SubAddr string */
 #define	TIFFTAG_FAXRECVTIME		34910	/* receive time (secs) */
+/* tags 37439-37443 are registered to SGI <gregl@sgi.com> */
+#define TIFFTAG_STONITS			37439	/* Sample value to Nits */
+/* tag 34929 is a private tag registered to FedEx */
+#define	TIFFTAG_FEDEX_EDR		34929	/* unknown use */
 /* tag 65535 is an undefined tag used by Eastman Kodak */
 #define TIFFTAG_DCSHUESHIFTVALUES       65535   /* hue shift correction data */
 
@@ -377,4 +412,11 @@ typedef	enum {
 /* Note: quality level is on the ZLIB 1-9 scale. Default value is -1 */
 #define	TIFFTAG_ZIPQUALITY		65557	/* compression quality level */
 #define	TIFFTAG_PIXARLOGQUALITY		65558	/* PixarLog uses same scale */
+/* 65559 is allocated to Oceana Matrix <dev@oceana.com> */
+#define TIFFTAG_DCSCLIPRECTANGLE	65559	/* area of image to acquire */
+#define TIFFTAG_SGILOGDATAFMT		65560	/* SGILog user data format */
+#define     SGILOGDATAFMT_FLOAT		0	/* IEEE float samples */
+#define     SGILOGDATAFMT_16BIT		1	/* 16-bit samples */
+#define     SGILOGDATAFMT_RAW		2	/* uninterpreted data */
+#define     SGILOGDATAFMT_8BIT		3	/* 8-bit RGB monitor values */
 #endif /* _TIFF_ */
