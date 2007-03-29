@@ -25,7 +25,7 @@ dnl OF THIS SOFTWARE.
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([LibTIFF Software], 3.7.2, [tiff@remotesensing.org], tiff)
+AC_INIT([LibTIFF Software], 3.7.3, [tiff@remotesensing.org], tiff)
 AC_LANG(C)
 
 dnl Compute the canonical target-system type variable
@@ -40,24 +40,38 @@ dnl Versioning.
 dnl Don't fill the ALPHA_VERSION field, if not applicable.
 LIBTIFF_MAJOR_VERSION=3
 LIBTIFF_MINOR_VERSION=7
-LIBTIFF_MICRO_VERSION=2
+LIBTIFF_MICRO_VERSION=3
 LIBTIFF_ALPHA_VERSION=
 LIBTIFF_VERSION=$LIBTIFF_MAJOR_VERSION.$LIBTIFF_MINOR_VERSION.$LIBTIFF_MICRO_VERSION$LIBTIFF_ALPHA_VERSION
 dnl This will be used with the 'make release' target
 LIBTIFF_RELEASE_DATE=`date +"%Y%m%d"`
+
+# This is a special hack for OpenBSD and MirOS systems. The dynamic linker
+# in OpenBSD uses some special semantics for shared libraries. Their soname
+# contains only two numbers, major and minor.
+# See http://bugzilla.remotesensing.org/show_bug.cgi?id=838 for details.
+case "$target_os" in
+    openbsd* | mirbsd*)
+	LIBTIFF_VERSION_INFO=$LIBTIFF_MAJOR_VERSION$LIBTIFF_MINOR_VERSION:$LIBTIFF_MICRO_VERSION$LIBTIFF_ALPHA_VERSION:0
+	;;
+    *)
+	LIBTIFF_VERSION_INFO=$LIBTIFF_MAJOR_VERSION:$LIBTIFF_MINOR_VERSION:$LIBTIFF_MICRO_VERSION$LIBTIFF_ALPHA_VERSION
+	;;
+esac
 
 AC_SUBST(LIBTIFF_MAJOR_VERSION)
 AC_SUBST(LIBTIFF_MINOR_VERSION)
 AC_SUBST(LIBTIFF_MICRO_VERSION)
 AC_SUBST(LIBTIFF_ALPHA_VERSION)
 AC_SUBST(LIBTIFF_VERSION)
+AC_SUBST(LIBTIFF_VERSION_INFO)
 AC_SUBST(LIBTIFF_RELEASE_DATE)
 
 dnl Checks for programs.
 AC_PROG_CC
 
 dnl We want warnings. As many warnings as possible.
-#VL_PROG_CC_WARNINGS()
+VL_PROG_CC_WARNINGS()
 
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -76,7 +90,7 @@ case "$target_os" in
 esac
 
 dnl Checks for header files.
-AC_CHECK_HEADERS([assert.h fcntl.h limits.h malloc.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([assert.h fcntl.h limits.h malloc.h search.h sys/time.h unistd.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -151,6 +165,7 @@ AC_ARG_ENABLE(rpath,
 	      AS_HELP_STRING([--enable-rpath],
 			     [Enable runtime linker paths (-R libtool option)]),
 	      [HAVE_RPATH=$enableval], [HAVE_RPATH=no])
+AM_CONDITIONAL(HAVE_RPATH, test "$HAVE_RPATH" = "yes")
 
 dnl ---------------------------------------------------------------------------
 dnl Support large files.
@@ -253,11 +268,6 @@ if test "x$enable_zlib" != "xno" ; then
 
   if test "x$with_zlib_lib_dir" != "x" ; then
     LDFLAGS="-L$with_zlib_lib_dir $LDFLAGS"
-  
-    if test "$HAVE_RPATH" = "yes"; then
-      LDFLAGS="-rpath$with_zlib_lib_dir $LDFLAGS"
-    fi
-  
   fi
   
   AC_CHECK_LIB(z, inflateEnd, [zlib_lib=yes], [zlib_lib=no],)
@@ -282,6 +292,11 @@ fi
 if test "$HAVE_ZLIB" = "yes" ; then
   AC_DEFINE(ZIP_SUPPORT,1,[Support Deflate compression])
   LIBS="-lz $LIBS"
+
+  if test "$HAVE_RPATH" = "yes" -a "x$with_zlib_lib_dir" != "x" ; then
+    LIBDIR="-R $with_zlib_lib_dir $LIBDIR"
+  fi
+
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -321,10 +336,6 @@ if test "x$enable_jpeg" != "xno" ; then
   if test "x$with_jpeg_lib_dir" != "x" ; then
     LDFLAGS="-L$with_jpeg_lib_dir $LDFLAGS"
   
-    if test "$HAVE_RPATH" = "yes"; then
-      LDFLAGS="-rpath$with_jpeg_lib_dir $LDFLAGS"
-    fi
-
   fi
   
   AC_CHECK_LIB(jpeg, jpeg_read_scanlines, [jpeg_lib=yes], [jpeg_lib=no],)
@@ -349,6 +360,11 @@ fi
 if test "$HAVE_JPEG" = "yes" ; then
   AC_DEFINE(JPEG_SUPPORT,1,[Support JPEG compression (requires IJG JPEG library)])
   LIBS="-ljpeg $LIBS"
+
+  if test "$HAVE_RPATH" = "yes" -a "x$with_jpeg_lib_dir" != "x" ; then
+    LIBDIR="-R $with_jpeg_lib_dir $LIBDIR"
+  fi
+
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -458,6 +474,8 @@ fi
 
 dnl ---------------------------------------------------------------------------
 
+AC_SUBST(LIBDIR)
+
 AC_CONFIG_HEADERS([libtiff/tif_config.h libtiff/tiffconf.h])
 
 AC_CONFIG_FILES([Makefile \
@@ -493,28 +511,28 @@ dnl ---------------------------------------------------------------------------
 LOC_MSG()
 LOC_MSG([Libtiff is now configured for ${host}])
 LOC_MSG()
-LOC_MSG([  Installation directory:            ${prefix}])
-LOC_MSG([  Documentation directory:           ${LIBTIFF_DOCDIR}])
-LOC_MSG([  C compiler:                        ${CC} ${CFLAGS}])
-LOC_MSG([  C++ compiler:                      ${CXX} ${CXXFLAGS}])
-LOC_MSG([  Enable runtime linker paths:       ${HAVE_RPATH}])
+LOC_MSG([  Installation directory:             ${prefix}])
+LOC_MSG([  Documentation directory:            ${LIBTIFF_DOCDIR}])
+LOC_MSG([  C compiler:                         ${CC} ${CFLAGS}])
+LOC_MSG([  C++ compiler:                       ${CXX} ${CXXFLAGS}])
+LOC_MSG([  Enable runtime linker paths:        ${HAVE_RPATH}])
 LOC_MSG()
 LOC_MSG([ Support for internal codecs:])
-LOC_MSG([  CCITT Group 3 & 4 algorithms:      ${HAVE_CCITT}])
-LOC_MSG([  Macintosh PackBits algorithm:      ${HAVE_PACKBITS}])
-LOC_MSG([  LZW algorithm:                     ${HAVE_LZW}])
-LOC_MSG([  ThunderScan 4-bit RLE algorithm:   ${HAVE_THUNDER}])
-LOC_MSG([  NeXT 2-bit RLE algorithm:          ${HAVE_NEXT}])
-LOC_MSG([  LogLuv high dynamic range encoding:${HAVE_LOGLUV}])
+LOC_MSG([  CCITT Group 3 & 4 algorithms:       ${HAVE_CCITT}])
+LOC_MSG([  Macintosh PackBits algorithm:       ${HAVE_PACKBITS}])
+LOC_MSG([  LZW algorithm:                      ${HAVE_LZW}])
+LOC_MSG([  ThunderScan 4-bit RLE algorithm:    ${HAVE_THUNDER}])
+LOC_MSG([  NeXT 2-bit RLE algorithm:           ${HAVE_NEXT}])
+LOC_MSG([  LogLuv high dynamic range encoding: ${HAVE_LOGLUV}])
 LOC_MSG()
 LOC_MSG([ Support for external codecs:])
-LOC_MSG([  ZLIB support:                      ${HAVE_ZLIB}])
-LOC_MSG([  Pixar log-format algorithm:        ${HAVE_PIXARLOG}])
-LOC_MSG([  JPEG support:                      ${HAVE_JPEG}])
-LOC_MSG([  Old JPEG support:                  ${HAVE_OJPEG}])
+LOC_MSG([  ZLIB support:                       ${HAVE_ZLIB}])
+LOC_MSG([  Pixar log-format algorithm:         ${HAVE_PIXARLOG}])
+LOC_MSG([  JPEG support:                       ${HAVE_JPEG}])
+LOC_MSG([  Old JPEG support:                   ${HAVE_OJPEG}])
 LOC_MSG()
-LOC_MSG([  C++ support:                       ${HAVE_CXX}])
+LOC_MSG([  C++ support:                        ${HAVE_CXX}])
 LOC_MSG()
-LOC_MSG([  OpenGL support:                    ${HAVE_OPENGL}])
+LOC_MSG([  OpenGL support:                     ${HAVE_OPENGL}])
 LOC_MSG()
 

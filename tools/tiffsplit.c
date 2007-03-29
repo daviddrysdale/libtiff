@@ -1,4 +1,4 @@
-/* $Id: tiffsplit.c,v 1.9 2004/06/05 08:11:26 dron Exp $ */
+/* $Id: tiffsplit.c,v 1.12 2005/05/26 18:42:56 dron Exp $ */
 
 /*
  * Copyright (c) 1992-1997 Sam Leffler
@@ -24,11 +24,17 @@
  * OF THIS SOFTWARE.
  */
 
+#include "tif_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "tiffio.h"
+
+#ifndef HAVE_GETOPT
+extern int getopt(int, char**, char*);
+#endif
 
 #define	CopyField(tag, v) \
     if (TIFFGetField(in, tag, &v)) TIFFSetField(out, tag, v)
@@ -125,11 +131,11 @@ newfilename(void)
          * start from 0 every 676 times (provided by lastTurn)
          * this keeps us within a-z boundaries
          */
-	fpnt[1] = (fnum - lastTurn) / 26 + 'a';
+	fpnt[1] = (char)((fnum - lastTurn) / 26) + 'a';
 	/* 
          * cycle last letter every file, from a-z, then repeat
          */
-	fpnt[2] = fnum % 26 + 'a';
+	fpnt[2] = (char)(fnum % 26) + 'a';
 	fnum++;
 }
 
@@ -151,10 +157,12 @@ tiffcp(TIFF* in, TIFF* out)
 	CopyField(TIFFTAG_SAMPLESPERPIXEL, samplesperpixel);
 	CopyField(TIFFTAG_COMPRESSION, compression);
 	if (compression == COMPRESSION_JPEG) {
-		uint16 count;
-		void *table;
-		TIFFGetField(in, TIFFTAG_JPEGTABLES, &count, &table);
-		TIFFSetField(out, TIFFTAG_JPEGTABLES, count, table);
+		uint16 count = 0;
+		void *table = NULL;
+		if (TIFFGetField(in, TIFFTAG_JPEGTABLES, &count, &table)
+		    && count > 0 && table) {
+		    TIFFSetField(out, TIFFTAG_JPEGTABLES, count, table);
+		}
 	}
         CopyField(TIFFTAG_PHOTOMETRIC, shortv);
 	CopyField(TIFFTAG_PREDICTOR, shortv);
