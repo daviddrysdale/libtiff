@@ -25,7 +25,7 @@ dnl OF THIS SOFTWARE.
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([LibTIFF Software], 3.7.1, [tiff@remotesensing.org], tiff)
+AC_INIT([LibTIFF Software], 3.7.2, [tiff@remotesensing.org], tiff)
 AC_LANG(C)
 
 dnl Compute the canonical target-system type variable
@@ -40,7 +40,7 @@ dnl Versioning.
 dnl Don't fill the ALPHA_VERSION field, if not applicable.
 LIBTIFF_MAJOR_VERSION=3
 LIBTIFF_MINOR_VERSION=7
-LIBTIFF_MICRO_VERSION=1
+LIBTIFF_MICRO_VERSION=2
 LIBTIFF_ALPHA_VERSION=
 LIBTIFF_VERSION=$LIBTIFF_MAJOR_VERSION.$LIBTIFF_MINOR_VERSION.$LIBTIFF_MICRO_VERSION$LIBTIFF_ALPHA_VERSION
 dnl This will be used with the 'make release' target
@@ -159,6 +159,21 @@ dnl ---------------------------------------------------------------------------
 AC_SYS_LARGEFILE
 
 dnl ---------------------------------------------------------------------------
+dnl Point to path where we should install documentation.
+dnl ---------------------------------------------------------------------------
+
+LIBTIFF_DOCDIR=\${prefix}/share/doc/${PACKAGE}-${LIBTIFF_VERSION}
+
+AC_ARG_WITH(docdir,
+	    AS_HELP_STRING([--with-docdir=DIR],
+			   [directory where documentation should be installed]),,)
+if test "x$with_docdir" != "x" ; then
+  LIBTIFF_DOCDIR=$with_docdir
+fi
+ 
+AC_SUBST(LIBTIFF_DOCDIR)
+
+dnl ---------------------------------------------------------------------------
 dnl Switch on/off internal codecs.
 dnl ---------------------------------------------------------------------------
 
@@ -240,7 +255,7 @@ if test "x$enable_zlib" != "xno" ; then
     LDFLAGS="-L$with_zlib_lib_dir $LDFLAGS"
   
     if test "$HAVE_RPATH" = "yes"; then
-      LDFLAGS="-R$with_zlib_lib_dir $LDFLAGS"
+      LDFLAGS="-rpath$with_zlib_lib_dir $LDFLAGS"
     fi
   
   fi
@@ -307,7 +322,7 @@ if test "x$enable_jpeg" != "xno" ; then
     LDFLAGS="-L$with_jpeg_lib_dir $LDFLAGS"
   
     if test "$HAVE_RPATH" = "yes"; then
-      LDFLAGS="-R$with_jpeg_lib_dir $LDFLAGS"
+      LDFLAGS="-rpath$with_jpeg_lib_dir $LDFLAGS"
     fi
 
   fi
@@ -356,8 +371,8 @@ dnl ---------------------------------------------------------------------------
 dnl Check for C++.
 dnl ---------------------------------------------------------------------------
 
-AC_ARG_ENABLE(c++,
-	      AS_HELP_STRING([--enable-c++],
+AC_ARG_ENABLE(cxx,
+	      AS_HELP_STRING([--enable-cxx],
 			     [enable C++ stream API building (requires C++ compiler)]),
 	      [HAVE_CXX=$enableval], [HAVE_CXX=yes])
 
@@ -479,6 +494,7 @@ LOC_MSG()
 LOC_MSG([Libtiff is now configured for ${host}])
 LOC_MSG()
 LOC_MSG([  Installation directory:            ${prefix}])
+LOC_MSG([  Documentation directory:           ${LIBTIFF_DOCDIR}])
 LOC_MSG([  C compiler:                        ${CC} ${CFLAGS}])
 LOC_MSG([  C++ compiler:                      ${CXX} ${CXXFLAGS}])
 LOC_MSG([  Enable runtime linker paths:       ${HAVE_RPATH}])

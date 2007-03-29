@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: tiffset.c,v 1.8 2004/11/11 11:18:09 dron Exp $
+ * $Id: tiffset.c,v 1.10 2005/02/24 14:47:11 fwarmerdam Exp $
  *
  * Project:  libtiff tools
  * Purpose:  Mainline for setting metadata in existing TIFF files.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 2000, Frank Warmerdam
@@ -27,6 +27,10 @@
  * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
  * OF THIS SOFTWARE.
  ******************************************************************************
+ *
+ * $Log: tiffset.c,v $
+ * Revision 1.10  2005/02/24 14:47:11  fwarmerdam
+ * Updated header.
  *
  */
 
@@ -107,7 +111,7 @@ main(int argc, char* argv[])
                 short   wc;
 
                 if (fip->field_writecount == TIFF_VARIABLE)
-                        wc = argv[arg_index++];
+                        wc = atoi(argv[arg_index++]);
                 else
                         wc = fip->field_writecount;
 

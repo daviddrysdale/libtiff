@@ -1,3 +1,184 @@
+2005-03-15  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff 3.7.2 released.
+
+2005-03-09  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tools/tiffcmp.c: Added ability to compare the 32-bit integer and
+	floating point data; complain on unsupported bit depths.
+
+2005-03-05  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tif_stream.cxx: Use ios namespace instead of ios_base to support
+	GCC 2.95.
+
+	* libtiff/{tiff.h, tif_fax3.tif, tif_jpeg.c}: Applied correct patch from
+	Lee Howard for HylaFax DCS tag
+	(see http://bugzilla.remotesensing.org/show_bug.cgi?id=771)
+
+2005-03-04  Andrey Kiselev  <dron@remotesensing.org>
+
+	* configure, configure.ac: Use -rpath option instead of -R as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=732
+
+	* libtiff/{tiff.h, tif_fax3.tif, tif_jpeg.c}: Applied patch from Lee
+	Howard to support a new tag TIFFTAG_FAXDCS (34911) used in HylaFax
+	software. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=771
+
+	* nmake.opt, html/build.html: Add more comments, change the config
+	file organization a bit as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=764
+
+	* tools/tiffcmp.c: Use properly sized buffer in short arrays comparison
+	as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=785
+
+2005-03-03  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dirread.c: More logic to guess missed strip size as per
+	bug http://bugzilla.remotesensing.org/show_bug.cgi?id=705
+
+	* tools/fax2ps.c: Replace insecure mktemp() function with the
+	tmpfile() as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=786
+
+2005-02-04  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tiff.h: Changed the int8 definition to be always signed char
+	as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=727
+
+	* libtiff/tiffio.h: Move TIFFOpenW() function into the extern "C"{}
+	block as per bug
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=763
+
+2005-02-03  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* tools/tiffgt.c: Fix problem on big-endian CPUs so that images
+	display more correctly.  Images display brighter than they should
+	on a Sun workstation.
+
+2005-02-03  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_dirread.c: Estimate strip size in case of wrong or
+	suspicious values in the tags. As per bugs
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=705
+
+	and
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=320
+
+	* tools/tiff2ps.c: Fixed problem with page sizes as per bug
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=742
+
+2005-01-31  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* libtiff/tiff.h (TIFFTAG_TILEWIDTH): Corrected description.
+	(TIFFTAG_TILELENGTH): Corrected description.
+
+2005-01-30  Andrey Kiselev  <dron@remotesensing.org>
+
+	* configure.ac: Fixes for --with-docdir option as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=759
+
+	* libtiff/tif_open.c: Remove unnesessary TIFFSeekFile() call as per
+	bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=756
+
+	* libtiff/tif_stream.cxx: Fixes for C++ stream interface from
+	Michael Rinne and Edward Lam.
+
+2005-01-15  Andrey Kiselev  <dron@remotesensing.org>
+
+	* configure.ac: Make the documentation directory location configurable
+	via the --with-docdir option (as suggested by Jeremy C. Reed).
+
+	* libtiff/tif_color.c: Use double as the second argument of pow()
+	function in TIFFCIELabToRGBInit(). As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=741
+
+	* libtiff/tif_pixarlog.c: Avoid warnings when converting float to
+	integer as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=740
+
+	* libtiff/tif_getimage.c: Always fill the error message buffer in
+	TIFFRGBAImageBegin() as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=739
+	
+2005-01-12  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_jpeg.c: Added ability to read/write the fax specific
+	TIFFTAG_FAXRECVPARAMS, TIFFTAG_FAXSUBADDRESS and TIFFTAG_FAXRECVTIME
+	tags as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=736
+
+	* libtiff/tif_win32.c: Fixed message formatting in functions
+	Win32WarningHandler() and Win32ErrorHandler() as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=735
+
+	* tools/tiff2ps.c: Interpret the -w and -h options independently. As
+	per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=689
+
+2005-01-11  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tiffio.h: Move the color conversion routines in the 'extern
+	"C"' section as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=727
+
+	* libtiff/tiff.h: Restore back the workaround for AIX Visual Age C
+	compiler to avoid double definition of BSD types as per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=39	
+
+	* libtiff/Makefile.am: Place the C++ stream API in the separate
+	library called libtiffxx to avoid unneeded dependencies. Probably
+	there will be more C++ API in the future. As per bugs
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=733
+
+	and
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=730
+
+2005-01-05  Andrey Kiselev  <dron@remotesensing.org>
+
+	* tools/tiffdump.c: Fixed problem when read broken TIFFs with the
+	wrong tag counts (Dmitry V. Levin, Martin Pitt).
+
+	* configure.ac: Replace --disable-c++ with the --disable-cxx option as
+	per bug http://bugzilla.remotesensing.org/show_bug.cgi?id=730
+
+2004-12-25  Andrey Kiselev  <dron@remotesensing.org>
+
+	* libtiff/tif_getimage.c: More fixes for multiple-alpha-channelled
+	RGB-images as per bug
+	
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=713
+
+
+	* tools/tiffset.c: Convert character option to integer value as per
+	bug http://bugzilla.remotesensing.org/show_bug.cgi?id=725
+
 2004-12-20  Andrey Kiselev  <dron@remotesensing.org>
 
 	* libtiff 3.7.1 released.
