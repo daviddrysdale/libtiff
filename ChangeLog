@@ -1,3 +1,69 @@
+2006-03-23  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* libtiff 3.8.2 released.
+
+	* tools/Makefile.am: Use runtime paths linker flags when rpath
+	option enabled.
+
+2006-03-21  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* libtiff/libtiff.def: Added missed exports as per bug
+	http://bugzilla.remotesensing.org/attachment.cgi?id=337
+
+	* contrib/addtiffo/Makefile.vc, libtiff/Makefile.vc, port/Makefile.vc,
+	tools/Makefile.vc: Makefiles improvements as per bug
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=1128
+
+	* nmake.opt libtiff/{tif_config.h.vc, tif_unix.c, tiffio.h},
+	tools/{fax2ps.c, fax2tiff.c, tiff2pdf.c}: Fixed win32 I/O functions
+	usage as per bug http://bugzilla.remotesensing.org/show_bug.cgi?id=1127
+
+	* libtiff/tif_strip.c: Take subsampling in account when calculating
+	TIFFScanlineSize().
+
+	* tools/tiffcp.c: Do not set RowsPerStrip bigger than image length.
+
+2006-03-17  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* tools/fax2tiff.c: Fixed wrong TIFFerror() invocations as per bug
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=1125
+
+	* tools/fax2ps.c: Fixed reading the input stream from stdin as per bug
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=1124
+
+2006-03-16  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* libtiff/tiffiop.h: Added decalration for
+	_TIFFSetDefaultCompressionState().
+
+	* libtiff/{tif_jpeg.c, tif_fax3.c, tif_zip.c, tif_pixarlog.c,
+	tif_lzw.c, tif_luv.c}: Use _TIFFSetDefaultCompressionState() in all
+	codec cleanup methods. As per bug
+
+	http://bugzilla.remotesensing.org/show_bug.cgi?id=1120
+
+2006-03-15  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* libtiff/tif_jpeg.c: Do not cleanup codec state in TIFFInitJPEG(). As
+	per bug http://bugzilla.remotesensing.org/show_bug.cgi?id=1119
+
+	* tools/raw2tiff.c: Do not set RowsPerStrip larger than ImageLength.
+	As per bug http://bugzilla.remotesensing.org/show_bug.cgi?id=1110
+
+	* libtiff/tiffiop.h: dblparam_t typedef removed; GLOBALDATA macro
+	removed; move here the STRIP_SIZE_DEFAULT macro definition.
+
+	* libtiff/{tif_dirread.c, tif_strip.c}: Removed STRIP_SIZE_DEFAULT
+	macro definition.
+
+	* libtiff/tif_dir.c: Use double type instead of dblparam_t.
+
+2006-03-14  Andrey Kiselev  <dron@ak4719.spb.edu>
+
+	* libtiff/tif_dirread.c: Do not check the PlanarConfig tag presence
+	in TIFFReadDirectory, because it is always set at the start of
+	function and we allow TIFFs without that tag set.
+
 2005-03-13  Andrey Kiselev  <dron@ak4719.spb.edu>
 
 	* libtiff 3.8.1 released.

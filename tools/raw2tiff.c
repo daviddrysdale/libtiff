@@ -1,11 +1,11 @@
-/* $Id: raw2tiff.c,v 1.21 2006/02/07 11:08:31 dron Exp $
+/* $Id: raw2tiff.c,v 1.23 2006/03/23 14:54:02 dron Exp $
  *
  * Project:  libtiff tools
  * Purpose:  Convert raw byte sequences in TIFF images
- * Author:   Andrey Kiselev, dron@remotesensing.org
+ * Author:   Andrey Kiselev, dron@ak4719.spb.edu
  *
  ******************************************************************************
- * Copyright (c) 2002, Andrey Kiselev <dron@remotesensing.org>
+ * Copyright (c) 2002, Andrey Kiselev <dron@ak4719.spb.edu>
  *
  * Permission to use, copy, modify, distribute, and sell this software and 
  * its documentation for any purpose is hereby granted without fee, provided
@@ -270,8 +270,13 @@ main(int argc, char* argv[])
 	}
 	bufsize = width * nbands * depth;
 	buf1 = (unsigned char *)_TIFFmalloc(bufsize);
-	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP,
-		     TIFFDefaultStripSize(out, rowsperstrip));
+
+	rowsperstrip = TIFFDefaultStripSize(out, rowsperstrip);
+	if (rowsperstrip > length) {
+		rowsperstrip = length;
+	}
+	TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, rowsperstrip );
+
 	lseek(fd, hdr_size, SEEK_SET);		/* Skip the file header */
 	for (row = 0; row < length; row++) {
 		switch(interleaving) {

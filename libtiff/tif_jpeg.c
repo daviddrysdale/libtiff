@@ -1,4 +1,4 @@
-/* $Id: tif_jpeg.c,v 1.43 2006/03/07 11:59:12 dron Exp $ */
+/* $Id: tif_jpeg.c,v 1.45 2006/03/16 12:38:24 dron Exp $ */
 
 /*
  * Copyright (c) 1994-1997 Sam Leffler
@@ -1532,6 +1532,8 @@ JPEGCleanup(TIFF* tif)
 		_TIFFfree(sp->jpegtables);
 	_TIFFfree(tif->tif_data);	/* release local state */
 	tif->tif_data = NULL;
+
+	_TIFFSetDefaultCompressionState(tif);
 }
 
 static int
@@ -1849,9 +1851,6 @@ TIFFInitJPEG(TIFF* tif, int scheme)
 	JPEGState* sp;
 
 	assert(scheme == COMPRESSION_JPEG);
-
-	if ((tif->tif_flags & TIFF_CODERSETUP) == 0)
-		JPEGCleanup(tif);
 
 	/*
 	 * Allocate state block so tag methods have storage to record values.

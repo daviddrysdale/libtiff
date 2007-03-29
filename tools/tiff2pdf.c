@@ -1,4 +1,4 @@
-/* $Id: tiff2pdf.c,v 1.28 2006/02/26 17:55:42 dron Exp $
+/* $Id: tiff2pdf.c,v 1.30 2006/03/21 16:37:51 dron Exp $
  *
  * tiff2pdf - converts a TIFF image to a PDF document
  *
@@ -45,7 +45,7 @@
 #if defined(VMS)
 #define unlink remove
 #endif
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(USE_WIN32_FILEIO)
 #include <windows.h>
 #include <tchar.h>
 #define unlink DeleteFileA
@@ -666,10 +666,9 @@ int main(int argc, char** argv){
 			TIFFSeekFile(output, (toff_t) 0, SEEK_SET);
 		}
 	} else {
-#ifndef _WIN32
+#if !defined(_WIN32) || defined(AVOID_WIN32_FILEIO)
 		output = TIFFFdOpen((int)fileno(tmpfile()), "-", "w");
-#endif
-#ifdef _WIN32
+#else
 		{
 			TCHAR temppath[MAX_PATH];
 			TCHAR tempfile[MAX_PATH];
@@ -696,11 +695,10 @@ int main(int argc, char** argv){
 		output->tif_readproc=t2p_empty_readproc;
 		output->tif_seekproc=t2p_empty_seekproc;
 		output->tif_closeproc=t2p_empty_closeproc;
-#ifndef _WIN32		
+#if !defined(_WIN32) || defined(AVOID_WIN32_FILEIO)
 		close(output->tif_fd);
 		output->tif_fd=(int)fileno(stdout);
-#endif
-#ifdef _WIN32
+#else
 		CloseHandle((HANDLE) output->tif_fd);
 		output->tif_fd=(int)GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
@@ -1765,7 +1763,7 @@ void t2p_read_tiff_size(T2P* t2p, TIFF* input){
 	tstrip_t stripcount=0;
 #endif
 #ifdef OJPEG_SUPPORT
-        uint32 k=0;
+        tsize_t k = 0;
 #endif
 
 	if(t2p->pdf_transcode == T2P_TRANSCODE_RAW){
@@ -3049,7 +3047,7 @@ int t2p_process_ojpeg_tables(T2P* t2p, TIFF* input){
 			t2p->t2p_error = T2P_ERR_ERROR;
 		return(0);
 	}
-	if(q_length < (64 * t2p->tiff_samplesperpixel)){
+	if(q_length < (64U * t2p->tiff_samplesperpixel)){
 		TIFFError(TIFF2PDF_MODULE, 
 			"Bad JPEGQTables field in OJPEG image %s", 
 			TIFFFileName(input));
@@ -3228,9 +3226,9 @@ int t2p_process_ojpeg_tables(T2P* t2p, TIFF* input){
 		ojpegdata[t2p->pdf_ojpegdatalength++]= i & 0xff;
 		if(proc==JPEGPROC_BASELINE){
 			ojpegdata[t2p->pdf_ojpegdatalength] |= 
-				( ( (i>(table_count-1)) ? (table_count-1) : i) << 4) & 0xf0;
+				( ( (i>(table_count-1U)) ? (table_count-1U) : i) << 4U) & 0xf0;
 			ojpegdata[t2p->pdf_ojpegdatalength++] |= 
-				( (i>(table_count-1)) ? (table_count-1) : i) & 0x0f;
+				( (i>(table_count-1U)) ? (table_count-1U) : i) & 0x0f;
 		} else {
 			ojpegdata[t2p->pdf_ojpegdatalength++] =  (i << 4) & 0xf0;
 		}

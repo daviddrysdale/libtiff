@@ -1,4 +1,4 @@
-/* $Id: tif_dirread.c,v 1.79 2006/03/07 15:55:27 dron Exp $ */
+/* $Id: tif_dirread.c,v 1.82 2006/03/16 12:24:53 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -129,10 +129,9 @@ TIFFReadDirectory(TIFF* tif)
 		}
 		if (tif->tif_flags & TIFF_SWAB)
 			TIFFSwabShort(&dircount);
-		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif,
-						  dircount,
-						  sizeof (TIFFDirEntry),
-						  "to read TIFF directory");
+		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif, dircount,
+						       sizeof (TIFFDirEntry),
+						"to read TIFF directory");
 		if (dir == NULL)
 			return (0);
 		if (!ReadOK(tif, dir, dircount*sizeof (TIFFDirEntry))) {
@@ -158,8 +157,9 @@ TIFFReadDirectory(TIFF* tif)
 		off += sizeof (uint16);
 		if (tif->tif_flags & TIFF_SWAB)
 			TIFFSwabShort(&dircount);
-		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif,
-		    dircount, sizeof (TIFFDirEntry), "to read TIFF directory");
+		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif, dircount,
+						       sizeof (TIFFDirEntry),
+						"to read TIFF directory");
 		if (dir == NULL)
 			return (0);
 		if (off + dircount*sizeof (TIFFDirEntry) > tif->tif_size) {
@@ -245,8 +245,8 @@ TIFFReadDirectory(TIFF* tif)
 		if (dp->tdir_tag < tif->tif_fieldinfo[fix]->field_tag) {
 			if (!diroutoforderwarning) {
 				TIFFWarningExt(tif->tif_clientdata, module,
-"%s: invalid TIFF directory; tags are not sorted in ascending order",
-                                            tif->tif_name);
+	"%s: invalid TIFF directory; tags are not sorted in ascending order",
+					       tif->tif_name);
 				diroutoforderwarning = 1;
 			}
 			fix = 0;			/* O(n^2) */
@@ -257,16 +257,19 @@ TIFFReadDirectory(TIFF* tif)
 		if (fix >= tif->tif_nfields ||
 		    tif->tif_fieldinfo[fix]->field_tag != dp->tdir_tag) {
 
-					TIFFWarningExt(tif->tif_clientdata, module,
+					TIFFWarningExt(tif->tif_clientdata,
+						       module,
                         "%s: unknown field with tag %d (0x%x) encountered",
-                                tif->tif_name, dp->tdir_tag, dp->tdir_tag,
-                                dp->tdir_type);
+						       tif->tif_name,
+						       dp->tdir_tag,
+						       dp->tdir_tag,
+						       dp->tdir_type);
 
-                    TIFFMergeFieldInfo( tif,
-                                        _TIFFCreateAnonFieldInfo( tif,
-                                              dp->tdir_tag,
-					      (TIFFDataType) dp->tdir_type ),
-                                        1 );
+                    TIFFMergeFieldInfo(tif,
+                                       _TIFFCreateAnonFieldInfo(tif,
+						dp->tdir_tag,
+						(TIFFDataType) dp->tdir_type),
+				       1 );
                     fix = 0;
                     while (fix < tif->tif_nfields &&
                            tif->tif_fieldinfo[fix]->field_tag < dp->tdir_tag)
@@ -365,10 +368,6 @@ TIFFReadDirectory(TIFF* tif)
 		MissingRequired(tif, "ImageLength");
 		goto bad;
 	}
-	if (!TIFFFieldSet(tif, FIELD_PLANARCONFIG)) {
-		MissingRequired(tif, "PlanarConfiguration");
-		goto bad;
-	}
 	/* 
  	 * Setup appropriate structures (by strip or by tile)
 	 */
@@ -383,8 +382,9 @@ TIFFReadDirectory(TIFF* tif)
 		tif->tif_flags |= TIFF_ISTILED;
 	}
 	if (!td->td_nstrips) {
-		TIFFErrorExt(tif->tif_clientdata, module, "%s: cannot handle zero number of %s",
-			  tif->tif_name, isTiled(tif) ? "tiles" : "strips");
+		TIFFErrorExt(tif->tif_clientdata, module,
+			     "%s: cannot handle zero number of %s",
+			     tif->tif_name, isTiled(tif) ? "tiles" : "strips");
 		goto bad;
 	}
 	td->td_stripsperimage = td->td_nstrips;
@@ -392,7 +392,7 @@ TIFFReadDirectory(TIFF* tif)
 		td->td_stripsperimage /= td->td_samplesperpixel;
 	if (!TIFFFieldSet(tif, FIELD_STRIPOFFSETS)) {
 		MissingRequired(tif,
-		    isTiled(tif) ? "TileOffsets" : "StripOffsets");
+				isTiled(tif) ? "TileOffsets" : "StripOffsets");
 		goto bad;
 	}
 
@@ -723,10 +723,9 @@ TIFFReadCustomDirectory(TIFF* tif, toff_t diroff,
 		}
 		if (tif->tif_flags & TIFF_SWAB)
 			TIFFSwabShort(&dircount);
-		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif,
-						  dircount,
-						  sizeof (TIFFDirEntry),
-						  "to read TIFF directory");
+		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif, dircount,
+						       sizeof (TIFFDirEntry),
+					"to read TIFF custom directory");
 		if (dir == NULL)
 			return (0);
 		if (!ReadOK(tif, dir, dircount * sizeof (TIFFDirEntry))) {
@@ -748,8 +747,9 @@ TIFFReadCustomDirectory(TIFF* tif, toff_t diroff,
 		off += sizeof (uint16);
 		if (tif->tif_flags & TIFF_SWAB)
 			TIFFSwabShort(&dircount);
-		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif,
-		    dircount, sizeof (TIFFDirEntry), "to read TIFF directory");
+		dir = (TIFFDirEntry *)_TIFFCheckMalloc(tif, dircount,
+						       sizeof (TIFFDirEntry),
+					"to read TIFF custom directory");
 		if (dir == NULL)
 			return (0);
 		if (off + dircount * sizeof (TIFFDirEntry) > tif->tif_size) {
@@ -1727,9 +1727,6 @@ ChopUpSingleUncompressedStrip(TIFF* tif)
 	 * Make the rows hold at least one scanline, but fill specified amount
 	 * of data if possible.
 	 */
-#ifndef STRIP_SIZE_DEFAULT
-# define STRIP_SIZE_DEFAULT 8192
-#endif
 	if (rowbytes > STRIP_SIZE_DEFAULT) {
 		stripbytes = rowbytes;
 		rowsperstrip = 1;
@@ -1739,7 +1736,6 @@ ChopUpSingleUncompressedStrip(TIFF* tif)
 	}
         else
             return;
-#undef STRIP_SIZE_DEFAULT
 
 	/* 
 	 * never increase the number of strips in an image
