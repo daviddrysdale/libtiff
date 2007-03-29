@@ -1,5 +1,5 @@
 #! smake
-# $Header: /cvsroot/osrs/libtiff/Makefile.in,v 1.37 2003/10/07 08:14:33 dron Exp $
+# $Header: /cvsroot/osrs/libtiff/Makefile.in,v 1.46 2003/12/23 10:27:29 dron Exp $
 #
 # @WARNING@
 #
@@ -55,11 +55,11 @@ all default:
 	@${ECHO} "= "man; cd man; ${MAKE} -${MAKEFLAGS}
 
 install:
-	@${ECHO} "= "libtiff; cd libtiff; ${MAKE} -${MAKEFLAGS} install
-	@${ECHO} "= "tools; cd tools; ${MAKE} -${MAKEFLAGS} install
-	@${ECHO} "= "man; cd man; ${MAKE} -${MAKEFLAGS} install
+	@${ECHO} "= "libtiff; cd libtiff; ${MAKE} install
+	@${ECHO} "= "tools; cd tools; ${MAKE} install
+	@${ECHO} "= "man; cd man; ${MAKE} install
 	@if [ "@HTML@" = yes ]; then \
-	    ${ECHO} "= "html; cd html; ${MAKE} -${MAKEFLAGS} install; \
+	    ${ECHO} "= "html; cd html; ${MAKE} install; \
 	else \
 	    true; \
 	fi
@@ -150,6 +150,7 @@ TIFFFILES=\
 	    libtiff/tif_close.c			\
 	    libtiff/tif_codec.c			\
 	    libtiff/tif_compress.c		\
+	    libtiff/tif_color.c			\
 	    libtiff/tif_dir.h			\
 	    libtiff/tif_dir.c			\
 	    libtiff/tif_dirinfo.c		\
@@ -208,11 +209,12 @@ TIFFFILES=\
 	    tools/raw2tiff.c			\
 	    tools/rgb2ycbcr.c			\
 	    tools/sgi2tiff.c			\
-	    tools/sgigt.c			\
+	    tools/tiffgt.c			\
 	    tools/sgisv.c			\
 	    tools/thumbnail.c			\
 	    tools/tiff2bw.c			\
 	    tools/tiff2rgba.c			\
+	    tools/tiff2pdf.c			\
 	    tools/tiff2ps.c			\
 	    tools/tiffcmp.c			\
 	    tools/tiffcp.c			\
@@ -236,6 +238,7 @@ TIFFFILES=\
 	    man/thumbnail.1			\
 	    man/tiff2bw.1			\
 	    man/tiff2rgba.1			\
+	    man/tiff2pdf.1			\
 	    man/tiff2ps.1			\
 	    man/tiffcmp.1			\
 	    man/tiffcp.1			\
@@ -277,6 +280,7 @@ TIFFFILES=\
 	    man/libtiff.3t			\
 	    man/TIFFbuffer.3t			\
 	    man/TIFFcodec.3t			\
+	    man/TIFFcolor.3t			\
 	    man/TIFFmemory.3t			\
 	    man/TIFFquery.3t			\
 	    man/TIFFsize.3t			\
@@ -333,6 +337,7 @@ TIFFFILES=\
 	    html/v3.5.6-beta.html				\
 	    html/v3.5.7.html					\
 	    html/v3.6.0.html					\
+	    html/v3.6.1.html					\
 	    html/man						\
 	    html/man/TIFFClose.3t.html				\
 	    html/man/TIFFDataWidth.3t.html			\
@@ -363,6 +368,7 @@ TIFFFILES=\
 	    html/man/TIFFWriteScanline.3t.html			\
 	    html/man/TIFFbuffer.3t.html				\
 	    html/man/TIFFcodec.3t.html				\
+	    html/man/TIFFcolor.3t.html				\
 	    html/man/TIFFmemory.3t.html				\
 	    html/man/TIFFquery.3t.html				\
 	    html/man/TIFFsize.3t.html				\
@@ -381,6 +387,7 @@ TIFFFILES=\
 	    html/man/sgi2tiff.1.html				\
 	    html/man/thumbnail.1.html				\
 	    html/man/tiff2bw.1.html				\
+	    html/man/tiff2pdf.1.html				\
 	    html/man/tiff2ps.1.html				\
 	    html/man/tiff2rgba.1.html				\
 	    html/man/tiffcmp.1.html				\
@@ -549,7 +556,7 @@ release.tar.zip:
 #	just below this one, and that .rpt files are available. 
 #
 test:
-	test_pics.sh pics/*.tif
+	${SRCDIR}/test_pics.sh pics/*.tif
 
 #
 # Create a package of the test images.

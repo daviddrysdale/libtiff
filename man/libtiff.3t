@@ -1,4 +1,4 @@
-.\" $Header: /cvsroot/osrs/libtiff/man/libtiff.3t,v 1.5 2002/09/15 16:44:52 dron Exp $
+.\" $Header: /cvsroot/osrs/libtiff/man/libtiff.3t,v 1.8 2003/12/21 22:04:53 dron Exp $
 .\"
 .\" Copyright (c) 1988-1997 Sam Leffler
 .\" Copyright (c) 1991-1997 Silicon Graphics, Inc.
@@ -160,6 +160,8 @@ on most systems doing ``man function-name'' will work.
 .sp 5p
 TIFFCheckpointDirectory writedir.3t	writes the current state of the directory
 TIFFCheckTile	tile.3t	very x,y,z,sample is within image
+TIFFCIELabToRGBInit	color.3t	initialize CIE L*a*b* 1976 to RGB conversion state
+TIFFCIELabToXYZ	color.3t	perform CIE L*a*b* 1976 to CIE XYZ conversion
 TIFFClientOpen	open.3t	open a file for reading or writing
 TIFFClose	close.3t	close an open file
 TIFFComputeStrip	strip.3t	return strip containing y,sample
@@ -173,6 +175,7 @@ TIFFError	error.3t	library error handler
 TIFFFdOpen	open.3t	open a file for reading or writing
 TIFFFileName	query.3t	return name of open file
 TIFFFileno	query.3t	return open file descriptor
+TIFFFindCODEC	codec.3t	find standard codec for the specific scheme
 TIFFFlush	flush.3t	flush all pending writes
 TIFFFlushData	flush.3t	flush pending data writes
 TIFFGetBitRevTable	swab.3t	return bit reversal table
@@ -180,6 +183,7 @@ TIFFGetField	getfield.3t	return tag value in current directory
 TIFFGetFieldDefaulted	getfield.3t	return tag value in current directory
 TIFFGetMode	query.3t	return open file mode
 TIFFGetVersion	query.3t	return library version string
+TIFFIsCODECConfigured	codec.3t	check, whether we have working codec
 TIFFIsTiled	query.3t	return true if image data is tiled
 TIFFIsByteSwapped	query.3t	return true if image data is byte-swapped
 TIFFNumberOfStrips	strip.3t	return number of strips in an image
@@ -195,6 +199,7 @@ TIFFReadRawTile	rdrtile.3t	read a raw tile of data
 TIFFReadRGBAImage	rdimage.3t	read an image into a fixed format raster
 TIFFReadScanline	readline.3t	read and decode a row of data
 TIFFReadTile	readtile.3t	read and decode a tile of data
+TIFFRegisterCODEC	codec.3t	override standard codec for the specific scheme
 TIFFReverseBits	swab.3t	reverse bits in an array of bytes
 TIFFRGBAImageBegin	rgbaimage.3t	setup decoder state for TIFFRGBAImageGet
 TIFFRGBAImageEnd	rgbaimage.3t	release TIFFRGBAImage decoder state
@@ -206,16 +211,19 @@ TIFFSetSubDirectory	setdir.3t	set the current directory
 TIFFSetErrorHandler	error.3t	set error handler function
 TIFFSetField	setfield.3t	set a tag's value in the current directory
 TIFFSetWarningHandler	error.3t	set warning handler function
-TIFFStripSize	size.3t	return size of a strip
+TIFFStripSize	strip.3t	returns size of a strip
+TIFFRawStripSize	strip.3t	returns the number of bytes in a raw strip
 TIFFSwabShort	swab.3t	swap bytes of short
 TIFFSwabLong	swab.3t	swap bytes of long
 TIFFSwabArrayOfShort	swab.3t	swap bytes of an array of shorts
 TIFFSwabArrayOfLong	swab.3t	swap bytes of an array of longs
 TIFFTileRowSize	size.3t	return size of a row in a tile
 TIFFTileSize	size.3t	return size of a tile
+TIFFUnRegisterCODEC	codec.3t	unregisters the codec
 TIFFVGetField	getfield.3t	return tag value in current directory
 TIFFVGetFieldDefaulted	getfield.3t	return tag value in current directory
 TIFFVSetField	setfield.3t	set a tag's value in the current directory
+TIFFVStripSize	strip.3t	returns the number of bytes in a strip
 TIFFWarning	warning.3t	library warning handler
 TIFFWriteDirectory	writedir.3t	write the current directory
 TIFFWriteEncodedStrip	wrestrip.3t	compress and write a strip of data
@@ -224,6 +232,9 @@ TIFFWriteRawStrip	wrrstrip.3t	write a raw strip of data
 TIFFWriteRawTile	wrrtile.3t	write a raw tile of data
 TIFFWriteScanline	writeline.3t	write a scanline of data
 TIFFWriteTile	wrrtile.3t	compress and write a tile of data
+TIFFXYZToRGB	color.3t	perform CIE XYZ to RGB conversion
+TIFFYCbCrToRGBInit	color.3t	initialize YCbCr to RGB conversion state
+TIFFYCbCrtoRGB	color.3t	perform YCbCr to RGB conversion
 .fi
 .SH "TAG USAGE"
 The table below lists the
