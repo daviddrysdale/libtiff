@@ -1,4 +1,4 @@
-/* $Id: tif_dirread.c,v 1.73 2005/12/26 14:31:25 dron Exp $ */
+/* $Id: tif_dirread.c,v 1.79 2006/03/07 15:55:27 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -80,7 +80,6 @@ TIFFReadDirectory(TIFF* tif)
 	size_t fix;
 	uint16 dircount;
 	toff_t nextdiroff;
-	char* cp;
 	int diroutoforderwarning = 0;
 	toff_t* new_dirlist;
 
@@ -98,8 +97,8 @@ TIFFReadDirectory(TIFF* tif)
 			return (0);
 	}
 	tif->tif_dirnumber++;
-	new_dirlist = _TIFFrealloc(tif->tif_dirlist,
-				   tif->tif_dirnumber * sizeof(toff_t));
+	new_dirlist = (toff_t *)_TIFFrealloc(tif->tif_dirlist,
+					tif->tif_dirnumber * sizeof(toff_t));
 	if (!new_dirlist) {
 		TIFFErrorExt(tif->tif_clientdata, module,
 			  "%s: Failed to allocate space for IFD list",
@@ -464,34 +463,41 @@ TIFFReadDirectory(TIFF* tif)
 			break;
 		case TIFFTAG_COLORMAP:
 		case TIFFTAG_TRANSFERFUNCTION:
-			/*
-			 * TransferFunction can have either 1x or 3x data
-			 * values; Colormap can have only 3x items.
-			 */
-			v = 1L<<td->td_bitspersample;
-			if (dp->tdir_tag == TIFFTAG_COLORMAP ||
-			    dp->tdir_count != v) {
-				if (!CheckDirCount(tif, dp, 3 * v))
-					break;
-			}
-			v *= sizeof(uint16);
-			cp = _TIFFCheckMalloc(tif, dp->tdir_count, sizeof (uint16),
-			    "to read \"TransferFunction\" tag");
-			if (cp != NULL) {
-				if (TIFFFetchData(tif, dp, cp)) {
-					/*
-					 * This deals with there being only
-					 * one array to apply to all samples.
-					 */
-					uint32 c = 1L << td->td_bitspersample;
-					if (dp->tdir_count == c)
-						v = 0L;
-					TIFFSetField(tif, dp->tdir_tag,
-					    cp, cp+v, cp+2*v);
+			{
+				char* cp;
+				/*
+				 * TransferFunction can have either 1x or 3x
+				 * data values; Colormap can have only 3x
+				 * items.
+				 */
+				v = 1L<<td->td_bitspersample;
+				if (dp->tdir_tag == TIFFTAG_COLORMAP ||
+				    dp->tdir_count != v) {
+					if (!CheckDirCount(tif, dp, 3 * v))
+						break;
 				}
-				_TIFFfree(cp);
+				v *= sizeof(uint16);
+				cp = (char *)_TIFFCheckMalloc(tif,
+							      dp->tdir_count,
+							      sizeof (uint16),
+					"to read \"TransferFunction\" tag");
+				if (cp != NULL) {
+					if (TIFFFetchData(tif, dp, cp)) {
+						/*
+						 * This deals with there being
+						 * only one array to apply to
+						 * all samples.
+						 */
+						uint32 c = 1L << td->td_bitspersample;
+						if (dp->tdir_count == c)
+							v = 0L;
+						TIFFSetField(tif, dp->tdir_tag,
+						    cp, cp+v, cp+2*v);
+					}
+					_TIFFfree(cp);
+				}
+				break;
 			}
-			break;
 		case TIFFTAG_PAGENUMBER:
 		case TIFFTAG_HALFTONEHINTS:
 		case TIFFTAG_YCBCRSUBSAMPLING:
@@ -852,7 +858,7 @@ TIFFReadEXIFDirectory(TIFF* tif, toff_t diroff)
 {
 	size_t exifFieldInfoCount;
 	const TIFFFieldInfo *exifFieldInfo =
-		_TIFFGetFieldInfo(&exifFieldInfoCount);
+		_TIFFGetExifFieldInfo(&exifFieldInfoCount);
 	return TIFFReadCustomDirectory(tif, diroff, exifFieldInfo,
 				       exifFieldInfoCount);
 }
@@ -966,13 +972,20 @@ TIFFFetchData(TIFF* tif, TIFFDirEntry* dir, char* cp)
 	int w = TIFFDataWidth((TIFFDataType) dir->tdir_type);
 	tsize_t cc = dir->tdir_count * w;
 
+	/* Check for overflow. */
+	if (!dir->tdir_count || !w || cc / w != (tsize_t)dir->tdir_count)
+		goto bad;
+
 	if (!isMapped(tif)) {
 		if (!SeekOK(tif, dir->tdir_offset))
 			goto bad;
 		if (!ReadOK(tif, cp, cc))
 			goto bad;
 	} else {
-		if (dir->tdir_offset + cc > tif->tif_size)
+		/* Check for overflow. */
+		if ((tsize_t)dir->tdir_offset + cc < (tsize_t)dir->tdir_offset
+		    || (tsize_t)dir->tdir_offset + cc < cc
+		    || (tsize_t)dir->tdir_offset + cc > (tsize_t)tif->tif_size)
 			goto bad;
 		_TIFFmemcpy(cp, tif->tif_base + dir->tdir_offset, cc);
 	}
@@ -998,9 +1011,10 @@ TIFFFetchData(TIFF* tif, TIFFDirEntry* dir, char* cp)
 	}
 	return (cc);
 bad:
-	TIFFErrorExt(tif->tif_clientdata, tif->tif_name, "Error fetching data for field \"%s\"",
-	    _TIFFFieldWithTag(tif, dir->tdir_tag)->field_name);
-	return ((tsize_t) 0);
+	TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
+		     "Error fetching data for field \"%s\"",
+		     _TIFFFieldWithTag(tif, dir->tdir_tag)->field_name);
+	return (tsize_t) 0;
 }
 
 /*
@@ -1156,7 +1170,7 @@ TIFFFetchShortPair(TIFF* tif, TIFFDirEntry* dir)
 		case TIFF_SHORT:
 		case TIFF_SSHORT:
 			{
-			uint16 v[4];
+			uint16 v[2];
 			return TIFFFetchShortArray(tif, dir, v)
 				&& TIFFSetField(tif, dir->tdir_tag, v[0], v[1]);
 			}
@@ -1319,8 +1333,9 @@ TIFFFetchAnyArray(TIFF* tif, TIFFDirEntry* dir, double* v)
 		/* TIFF_ASCII */
 		/* TIFF_UNDEFINED */
 		TIFFErrorExt(tif->tif_clientdata, tif->tif_name,
-		    "cannot read TIFF_ANY type %d for field \"%s\"",
-		    _TIFFFieldWithTag(tif, dir->tdir_tag)->field_name);
+			     "cannot read TIFF_ANY type %d for field \"%s\"",
+			     dir->tdir_type,
+			     _TIFFFieldWithTag(tif, dir->tdir_tag)->field_name);
 		return (0);
 	}
 	return (1);
@@ -1342,35 +1357,35 @@ TIFFFetchNormalTag(TIFF* tif, TIFFDirEntry* dp)
 		switch (dp->tdir_type) {
 		case TIFF_BYTE:
 		case TIFF_SBYTE:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (uint8), mesg);
 			ok = cp && TIFFFetchByteArray(tif, dp, (uint8*) cp);
 			break;
 		case TIFF_SHORT:
 		case TIFF_SSHORT:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (uint16), mesg);
 			ok = cp && TIFFFetchShortArray(tif, dp, (uint16*) cp);
 			break;
 		case TIFF_LONG:
 		case TIFF_SLONG:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (uint32), mesg);
 			ok = cp && TIFFFetchLongArray(tif, dp, (uint32*) cp);
 			break;
 		case TIFF_RATIONAL:
 		case TIFF_SRATIONAL:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (float), mesg);
 			ok = cp && TIFFFetchRationalArray(tif, dp, (float*) cp);
 			break;
 		case TIFF_FLOAT:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (float), mesg);
 			ok = cp && TIFFFetchFloatArray(tif, dp, (float*) cp);
 			break;
 		case TIFF_DOUBLE:
-			cp = _TIFFCheckMalloc(tif,
+			cp = (char *)_TIFFCheckMalloc(tif,
 			    dp->tdir_count, sizeof (double), mesg);
 			ok = cp && TIFFFetchDoubleArray(tif, dp, (double*) cp);
 			break;
@@ -1380,7 +1395,8 @@ TIFFFetchNormalTag(TIFF* tif, TIFFDirEntry* dp)
 			 * Some vendors write strings w/o the trailing
 			 * NULL byte, so always append one just in case.
 			 */
-			cp = _TIFFCheckMalloc(tif, dp->tdir_count+1, 1, mesg);
+			cp = (char *)_TIFFCheckMalloc(tif, dp->tdir_count + 1,
+						      1, mesg);
 			if( (ok = (cp && TIFFFetchString(tif, dp, cp))) != 0 )
 				cp[dp->tdir_count] = '\0';	/* XXX */
 			break;
@@ -1671,7 +1687,8 @@ TIFFFetchRefBlackWhite(TIFF* tif, TIFFDirEntry* dir)
 	/*
 	 * Handle LONG's for backward compatibility.
 	 */
-	cp = _TIFFCheckMalloc(tif, dir->tdir_count, sizeof (uint32), mesg);
+	cp = (char *)_TIFFCheckMalloc(tif, dir->tdir_count,
+				      sizeof (uint32), mesg);
 	if( (ok = (cp && TIFFFetchLongArray(tif, dir, (uint32*) cp))) != 0) {
 		float* fp = (float*)
 		    _TIFFCheckMalloc(tif, dir->tdir_count, sizeof (float), mesg);
