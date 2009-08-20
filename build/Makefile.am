@@ -1,6 +1,8 @@
+# $Id: Makefile.am,v 1.1 2007/02/24 15:03:49 dron Exp $
+#
 # Tag Image File Format (TIFF) Software
 #
-# Copyright (C) 2004, Andrey Kiselev <dron@ak4719.spb.edu>
+# Copyright (C) 2007, Andrey Kiselev <dron@ak4719.spb.edu>
 #
 # Permission to use, copy, modify, distribute, and sell this software and 
 # its documentation for any purpose is hereby granted without fee, provided
@@ -23,5 +25,7 @@
 
 # Process this file with automake to produce Makefile.in.
 
-EXTRA_DIST = README jdhuff_add.c
+EXTRA_DIST = README
+
+SUBDIRS = 
 
