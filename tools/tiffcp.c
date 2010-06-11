@@ -1,4 +1,4 @@
-/* $Id: tiffcp.c,v 1.37.2.1 2009-01-01 00:10:43 bfriesen Exp $ */
+/* $Id: tiffcp.c,v 1.37.2.8 2010-06-11 20:50:55 bfriesen Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -92,6 +92,7 @@ static	void usage(void);
 static char comma = ',';  /* (default) comma separator character */
 static TIFF* bias = NULL;
 static int pageNum = 0;
+static int pageInSeq = 0;
 
 static int nextSrcImage (TIFF *tif, char **imageSpec)
 /*
@@ -171,7 +172,7 @@ main(int argc, char* argv[])
 
 	*mp++ = 'w';
 	*mp = '\0';
-	while ((c = getopt(argc, argv, ",:b:c:f:l:o:z:p:r:w:aistBLMC")) != -1)
+	while ((c = getopt(argc, argv, ",:b:c:f:l:o:z:p:r:w:aistBLMCx")) != -1)
 		switch (c) {
                 case ',':
                         if (optarg[0] != '=') usage();
@@ -256,6 +257,9 @@ main(int argc, char* argv[])
 		case 'C':
 			*mp++ = 'c'; *mp = '\0';
 			break;
+		case 'x':
+			pageInSeq = 1;
+			break;
 		case '?':
 			usage();
 			/*NOTREACHED*/
@@ -270,11 +274,14 @@ main(int argc, char* argv[])
 	for (; optind < argc-1 ; optind++) {
                 char *imageCursor = argv[optind];
 		in = openSrcImage (&imageCursor);
-		if (in == NULL)
+		if (in == NULL) {
+			(void) TIFFClose(out);
 			return (-3);
+		}
 		if (diroff != 0 && !TIFFSetSubDirectory(in, diroff)) {
 			TIFFError(TIFFFileName(in),
 			    "Error, setting subdirectory at %#x", diroff);
+			(void) TIFFClose(in);
 			(void) TIFFClose(out);
 			return (1);
 		}
@@ -288,7 +295,8 @@ main(int argc, char* argv[])
                    tilelength = deftilelength;
                    g3opts = defg3opts;
                    if (!tiffcp(in, out) || !TIFFWriteDirectory(out)) {
-                        TIFFClose(out);
+			(void) TIFFClose(in);
+                        (void) TIFFClose(out);
                         return (1);
                    }
                    if (imageCursor) { /* seek next image directory */
@@ -296,10 +304,10 @@ main(int argc, char* argv[])
                    }else
                         if (!TIFFReadDirectory(in)) break;
 		}
-		TIFFClose(in);
+		(void) TIFFClose(in);
 	}
 
-        TIFFClose(out);
+        (void) TIFFClose(out);
         return (0);
 }
 
@@ -547,6 +555,7 @@ static int
 tiffcp(TIFF* in, TIFF* out)
 {
 	uint16 bitspersample, samplesperpixel;
+	uint16 input_compression, input_photometric;
 	copyFunc cf;
 	uint32 width, length;
 	struct cpTag* p;
@@ -559,26 +568,30 @@ tiffcp(TIFF* in, TIFF* out)
 		TIFFSetField(out, TIFFTAG_COMPRESSION, compression);
 	else
 		CopyField(TIFFTAG_COMPRESSION, compression);
-	if (compression == COMPRESSION_JPEG) {
-	    uint16 input_compression, input_photometric;
+	TIFFGetFieldDefaulted(in, TIFFTAG_COMPRESSION, &input_compression);
+	TIFFGetFieldDefaulted(in, TIFFTAG_PHOTOMETRIC, &input_photometric);
+	if (input_compression == COMPRESSION_JPEG) {
+		/* Force conversion to RGB */
+		TIFFSetField(in, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
+	} else if (input_photometric == PHOTOMETRIC_YCBCR) {
+		/* Otherwise, can't handle subsampled input */
+		uint16 subsamplinghor,subsamplingver;
 
-            if (TIFFGetField(in, TIFFTAG_COMPRESSION, &input_compression)
-                 && input_compression == COMPRESSION_JPEG) {
-                TIFFSetField(in, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
-            }
-	    if (TIFFGetField(in, TIFFTAG_PHOTOMETRIC, &input_photometric)) {
-		if(input_photometric == PHOTOMETRIC_RGB) {
-			if (jpegcolormode == JPEGCOLORMODE_RGB)
-		    		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
-					     PHOTOMETRIC_YCBCR);
-			else
-		    		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
-					     PHOTOMETRIC_RGB);
-		} else
-			TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
-				     input_photometric);
-	    }
-        }
+		TIFFGetFieldDefaulted(in, TIFFTAG_YCBCRSUBSAMPLING,
+				      &subsamplinghor, &subsamplingver);
+		if (subsamplinghor!=1 || subsamplingver!=1) {
+			fprintf(stderr, "tiffcp: %s: Can't copy/convert subsampled image.\n",
+				TIFFFileName(in));
+			return FALSE;
+		}
+	}
+	if (compression == COMPRESSION_JPEG) {
+		if (input_photometric == PHOTOMETRIC_RGB &&
+		    jpegcolormode == JPEGCOLORMODE_RGB)
+		  TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_YCBCR);
+		else
+		  TIFFSetField(out, TIFFTAG_PHOTOMETRIC, input_photometric);
+	}
 	else if (compression == COMPRESSION_SGILOG
 		 || compression == COMPRESSION_SGILOG24)
 		TIFFSetField(out, TIFFTAG_PHOTOMETRIC,
@@ -725,12 +738,19 @@ tiffcp(TIFF* in, TIFF* out)
 	}
 	{
 	  unsigned short pg0, pg1;
-	  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1)) {
-		if (pageNum < 0) /* only one input file */
+	  if(pageInSeq == 1) {
+	  	if (pageNum < 0) /* only one input file */ {
+		  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1)) 
 			TIFFSetField(out, TIFFTAG_PAGENUMBER, pg0, pg1);
-		else 
+		} else
 			TIFFSetField(out, TIFFTAG_PAGENUMBER, pageNum++, 0);
-	  }
+	  } else
+		  if (TIFFGetField(in, TIFFTAG_PAGENUMBER, &pg0, &pg1)) {
+			if (pageNum < 0) /* only one input file */
+				TIFFSetField(out, TIFFTAG_PAGENUMBER, pg0, pg1);
+			else 
+				TIFFSetField(out, TIFFTAG_PAGENUMBER, pageNum++, 0);
+		  }
 	}
 
 	for (p = tags; p < &tags[NTAGS]; p++)
@@ -1741,3 +1761,10 @@ pickCopyFunc(TIFF* in, TIFF* out, uint16 bitspersample, uint16 samplesperpixel)
 }
 
 /* vim: set ts=8 sts=8 sw=8 noet: */
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 8
+ * fill-column: 78
+ * End:
+ */

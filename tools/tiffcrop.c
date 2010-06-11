@@ -1,4 +1,4 @@
-/* $Id: tiffcrop.c,v 1.3.2.9 2009-11-03 15:24:12 bfriesen Exp $ */
+/* $Id: tiffcrop.c,v 1.3.2.11 2010-06-08 23:29:51 bfriesen Exp $ */
 
 /* tiffcrop.c -- a port of tiffcp.c extended to include manipulations of
  * the image data through additional options listed below
@@ -148,10 +148,6 @@ extern int getopt(int, char**, char*);
 #define	streq(a,b)	(strcmp((a),(b)) == 0)
 #endif
 #define	strneq(a,b,n)	(strncmp((a),(b),(n)) == 0)
-
-/* NB: the uint32 casts are to silence certain ANSI-C compilers */
-#define TIFFhowmany(x, y) ((((uint32)(x))+(((uint32)(y))-1))/((uint32)(y)))
-#define TIFFhowmany8(x) (((x)&0x07)?((uint32)(x)>>3)+1:(uint32)(x)>>3)
 
 #define	TRUE	1
 #define	FALSE	0
@@ -8873,3 +8869,10 @@ invertImage(uint16 photometric, uint16 spp, uint16 bps, uint32 width, uint32 len
   }
 
 /* vim: set ts=8 sts=8 sw=8 noet: */
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 8
+ * fill-column: 78
+ * End:
+ */
