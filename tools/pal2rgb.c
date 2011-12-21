@@ -1,4 +1,4 @@
-/* $Id: pal2rgb.c,v 1.10.2.2 2010-07-02 12:03:27 dron Exp $ */
+/* $Id: pal2rgb.c,v 1.13 2010-07-02 12:02:56 dron Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -33,6 +33,10 @@
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
+#endif
+
+#ifdef NEED_LIBPORT
+# include "libport.h"
 #endif
 
 #include "tiffio.h"

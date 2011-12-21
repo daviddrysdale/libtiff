@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: tiffset.c,v 1.12.2.2 2010-07-06 14:26:00 dron Exp $
+ * $Id: tiffset.c,v 1.16 2011-03-26 12:07:20 fwarmerdam Exp $
  *
  * Project:  libtiff tools
  * Purpose:  Mainline for setting metadata in existing TIFF files.
@@ -35,11 +35,14 @@
 #include <stdlib.h>
 
 #include "tiffio.h"
+#include "tif_dir.h"
 
 static char* usageMsg[] = {
 "usage: tiffset [options] filename",
 "where options are:",
 " -s <tagname> [count] <value>...   set the tag value",
+" -d <dirno> set the directory",
+" -sd <diroff> set the subdirectory",
 " -sf <tagname> <filename>  read the tag value from file (for ASCII tags only)",
 NULL
 };
@@ -53,10 +56,10 @@ usage(void)
 	exit(-1);
 }
 
-static const TIFFFieldInfo *
+static const TIFFField *
 GetField(TIFF *tiff, const char *tagname)
 {
-    const TIFFFieldInfo *fip;
+    const TIFFField *fip;
 
     if( atoi(tagname) > 0 )
         fip = TIFFFieldWithTag(tiff, (ttag_t)atoi(tagname));
@@ -65,7 +68,7 @@ GetField(TIFF *tiff, const char *tagname)
 
     if (!fip) {
         fprintf( stderr, "Field name \"%s\" is not recognised.\n", tagname );
-        return (TIFFFieldInfo *)NULL;
+        return (TIFFField *)NULL;
     }
 
     return fip;
@@ -85,8 +88,26 @@ main(int argc, char* argv[])
         return 2;
 
     for( arg_index = 1; arg_index < argc-1; arg_index++ ) {
+	if (strcmp(argv[arg_index],"-d") == 0 && arg_index < argc-2) {
+	    arg_index++;
+	    if( TIFFSetDirectory(tiff, atoi(argv[arg_index]) ) != 1 )
+            {
+               fprintf( stderr, "Failed to set directory=%s\n", argv[arg_index] );
+               return 6;
+            }
+	    arg_index++;
+	}
+	if (strcmp(argv[arg_index],"-sd") == 0 && arg_index < argc-2) {
+	    arg_index++;
+	    if( TIFFSetSubDirectory(tiff, atoi(argv[arg_index]) ) != 1 )
+            {
+               fprintf( stderr, "Failed to set sub directory=%s\n", argv[arg_index] );
+               return 7;
+            }
+	    arg_index++;
+	}
         if (strcmp(argv[arg_index],"-s") == 0 && arg_index < argc-3) {
-            const TIFFFieldInfo *fip;
+            const TIFFField *fip;
             const char *tagname;
 
             arg_index++;
@@ -222,7 +243,7 @@ main(int argc, char* argv[])
 			} else {
                                 ret = TIFFSetField(tiff, fip->field_tag,
                                                    array);
-			}
+                        }
 
                         _TIFFfree(array);
                 } else {
@@ -261,9 +282,9 @@ main(int argc, char* argv[])
             }
         } else if (strcmp(argv[arg_index],"-sf") == 0 && arg_index < argc-3) {
             FILE    *fp;
-            const TIFFFieldInfo *fip;
+            const TIFFField *fip;
             char    *text;
-            int     len;
+            size_t  len;
 
             arg_index++;
             fip = GetField(tiff, argv[arg_index]);

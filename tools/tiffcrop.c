@@ -1,4 +1,4 @@
-/* $Id: tiffcrop.c,v 1.3.2.15 2010-12-14 02:03:55 faxguy Exp $ */
+/* $Id: tiffcrop.c,v 1.20 2010-12-14 02:03:24 faxguy Exp $ */
 
 /* tiffcrop.c -- a port of tiffcp.c extended to include manipulations of
  * the image data through additional options listed below

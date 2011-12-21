@@ -1,4 +1,4 @@
-/* $Id: fax2ps.c,v 1.22.2.4 2011-04-02 19:18:12 bfriesen Exp $" */
+/* $Id: fax2ps.c,v 1.27 2011-04-02 19:30:20 bfriesen Exp $" */
 
 /*
  * Copyright (c) 1991-1997 Sam Leffler
@@ -41,6 +41,10 @@
 
 #ifdef HAVE_IO_H
 # include <io.h>
+#endif
+
+#ifdef NEED_LIBPORT
+# include "libport.h"
 #endif
 
 #include "tiffio.h"
