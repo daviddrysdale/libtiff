@@ -1,4 +1,84 @@
+2015-08-30  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* configure.ac: libtiff 4.0.5 released.
+
+2015-08-29  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* CMakeLists.txt: Applied patch by Roger Leigh (via tiff mailing
+	list on 2015-08-29) to add ld-version-script option to cmake build
+	to match autoconf.  Note: defaults to 'on' to be ABI-compatible by
+	default with common Linux distribution builds.  Note that the
+	autoconf configure script defaults to 'off'.
+
+	* html/build.html: Applied patch by Roger Leigh (via tiff mailing
+	list on 2015-08-29) to describe how to use CMake to build libtiff.
+
+2015-08-28  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* html/v4.0.5.html: Added HTML file describing the changes which
+	will appear in the 4.0.5 release.
+
+2015-08-23  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* libtiff/tiffiop.h: For MinGW comiles, make sure that build
+	supports necessary __MSVCRT_VERSION__ (at least at least 0x800).
+	Otherwise large files can not be supported for POSIX-style I/O.
+
+	* tools/fax2tiff.c (main): Eliminate a compiler warning in 64-bit
+	builds about cast to thandle_t.
+
+	* test/rewrite_tag.c (main): Does not require any arguments.
+
+2015-08-20  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* tools/CMakeLists.txt, port/snprintf.c: Patch by Roger Leigh to
+	fix build issues when using Cmake due to Windows large file
+	changes.
+
+2015-08-18  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* libtiff/tiffiop.h: First cut at supporting large files under
+	Microsoft Windows using tif_unix.c and the libtiff tools.  This
+	only works if the Windows CDK is new enough to support the APIs
+	used (Visual C++ 2005 or later).  Support for large files is not
+	actually tested yet.
+
+2015-08-15  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* libtiff/tif_jpeg.c: Applied patch by Räisä Olli to assure that
+	client_data is initialized to a known value, and to report an
+	error on two memory allocation failures.
+
+2015-08-13  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* CMakeLists.txt: Applied patch by Roger Leigh to fix libtiffxx
+	symbol versioning.  Patch was mailed to libtiff list on Thu, 13
+	Aug 2015.
+
+2015-07-04  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* cmake: Add d suffix to debug libraries with MSVC.  Patch #3 of 3
+	by Roger Leigh posted to tiff list on Wed, 1 Jul 2015 15:58:20
+	+0100.
+
+	* cmake: Add extra warning flags.  Patch #2 of 3 by Roger Leigh
+	posted to tiff list on Wed, 1 Jul 2015 15:58:20 +0100.
+
+	* cmake: Correct snprintf fallback for VS2015.  Patch #1 of 3 by
+	Roger Leigh posted to tiff list on Wed, 1 Jul 2015 15:58:20 +0100.
+
+2015-06-24  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* CMakeLists.txt: Add CMake patchset by Roger Leigh as posted to
+	libtiff mailing list on Mon, 22 Jun 2015 21:21:01 +0100. Several
+	corrections to ensure that the autotools build still works were
+	added by me.  I have not yet tested the build using 'cmake' or
+	MSVC with 'nmake'.
+
 2015-06-21  Bob Friesenhahn  <bfriesen@simple.dallas.tx.us>
+
+	* test/Makefile.am: tiff2rgba-quad-tile.jpg.sh depends on the JPEG
+	library so only execute if JPEG is available.
 
 	* libtiff 4.0.4 released.
 
@@ -66,20 +146,20 @@
 2015-06-14  Lee Howard  <faxguy@howardsilvan.com>
 
 	* libtiff/tif_unix.c: contribution from Vadim Zeitlin on
-	Bugzilla Bug #2510 fixes several harmless but still annoying 
+	Bugzilla Bug #2510 fixes several harmless but still annoying
 	warnings
 
 	* configure: contribution from Ludolf Holzheid on Bugzilla
-	Bug #2498.  Adds an option to select the file I/O style on 
+	Bug #2498.  Adds an option to select the file I/O style on
 	Windows hosts.
 
-	* libtiff/tif_getimage.c: contribution from Gary Cramblitt 
+	* libtiff/tif_getimage.c: contribution from Gary Cramblitt
 	on Bugzilla Bug #2409.  Correct reading of certain tiled TIFFs.
 
 	* configure, configure.ac: contribution from Marcos H. Woehrmann
 	on Bugzilla Bug #2405.  Correct shell equality operator.
 
-	* tools/tiffgt.c (raster_draw): contribution from Jay Berkenbilt 
+	* tools/tiffgt.c (raster_draw): contribution from Jay Berkenbilt
 	on Bugzilla Bug #2401.  Appropriately call glFlush().
 
 	* tools/tiff2pdf.c: change ColorTransform from "0" to "1"
