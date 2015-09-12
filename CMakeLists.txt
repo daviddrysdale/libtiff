@@ -23,10 +23,10 @@
 # LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
 # OF THIS SOFTWARE.
 
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 2.8.9)
 
-# Default policy is from 3.0.0
-cmake_policy(VERSION 3.0.0)
+# Default policy is from 2.8.9
+cmake_policy(VERSION 2.8.9)
 # Set MacOSX @rpath usage globally.
 if (POLICY CMP0020)
   cmake_policy(SET CMP0020 NEW)
@@ -42,13 +42,44 @@ if (POLICY CMP0054)
   cmake_policy(SET CMP0054 NEW)
 endif(POLICY CMP0054)
 
+# Read version information from configure.ac.
+FILE(READ "${CMAKE_CURRENT_SOURCE_DIR}/configure.ac" configure)
+STRING(REGEX REPLACE ";" "\\\\;" configure "${configure}")
+STRING(REGEX REPLACE "\n" ";" configure "${configure}")
+foreach(line ${configure})
+  foreach(var LIBTIFF_MAJOR_VERSION LIBTIFF_MINOR_VERSION LIBTIFF_MICRO_VERSION LIBTIFF_ALPHA_VERSION
+          LIBTIFF_CURRENT LIBTIFF_REVISION LIBTIFF_AGE)
+    if(NOT ${var})
+      string(REGEX MATCH "^${var}=(.*)" ${var}_MATCH "${line}")
+      if(${var}_MATCH)
+        string(REGEX REPLACE "^${var}=(.*)" "\\1" ${var} "${line}")
+      endif()
+    endif()
+  endforeach()
+endforeach()
+
+math(EXPR SO_MAJOR "${LIBTIFF_CURRENT} - ${LIBTIFF_AGE}")
+set(SO_MINOR "${LIBTIFF_AGE}")
+set(SO_REVISION "${LIBTIFF_REVISION}")
+
+message(STATUS "Building tiff version ${LIBTIFF_MAJOR_VERSION}.${LIBTIFF_MINOR_VERSION}.${LIBTIFF_MICRO_VERSION}${LIBTIFF_ALPHA_VERSION}")
+message(STATUS "libtiff library version ${SO_MAJOR}.${SO_MINOR}.${SO_REVISION}")
+
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+
 # Project version
-project(tiff VERSION 4.0.5 LANGUAGES C)
+project(tiff C)
+set(VERSION "${LIBTIFF_MAJOR_VERSION}.${LIBTIFF_MINOR_VERSION}.${LIBTIFF_MICRO_VERSION}")
+set(tiff_VERSION "${VERSION}")
+set(tiff_VERSION_MAJOR "${LIBTIFF_MAJOR_VERSION}")
+set(tiff_VERSION_MINOR "${LIBTIFF_MINOR_VERSION}")
+set(tiff_VERSION_PATCH "${LIBTIFF_MICRO_VERSION}")
+
 # the other tiff_VERSION_* variables are set automatically
-set(tiff_VERSION_ALPHA beta)
+set(tiff_VERSION_ALPHA "${LIBTIFF_ALPHA_VERSION}")
 # Library version (unlike libtool's baroque scheme, WYSIWYG here)
-set(SO_COMPATVERSION 5)
-set(SO_VERSION 5.2.2)
+set(SO_COMPATVERSION "${SO_MAJOR}")
+set(SO_VERSION "${SO_MAJOR}.${SO_MINOR}.${SO_REVISION}")
 
 # For autotools header compatibility
 set(PACKAGE_NAME "LibTIFF Software")
@@ -704,6 +735,7 @@ message(STATUS "  Installation directory:             ${prefix}")
 message(STATUS "  Documentation directory:            ${LIBTIFF_DOCDIR}")
 message(STATUS "  C compiler:                         ${CMAKE_C_COMPILER}")
 message(STATUS "  C++ compiler:                       ${CMAKE_CXX_COMPILER}")
+message(STATUS "  Build shared libraries:             ${BUILD_SHARED_LIBS}")
 message(STATUS "  Enable linker symbol versioning:    ${HAVE_LD_VERSION_SCRIPT}")
 message(STATUS "  Support Microsoft Document Imaging: ${mdi}")
 message(STATUS "  Use win32 IO:                       ${USE_WIN32_FILEIO}")
